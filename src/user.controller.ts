@@ -1,27 +1,14 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { validate } from 'class-validator';
-import { User } from './user.module';
 import { UserCreateDto } from './user-create.dto';
 import { UserResponseDto } from './user-response.dto';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { UserService } from './user.service';
+import { User } from './user.module';
 
 @ApiTags('users')
 @Controller('users')
 export class UserController {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @Get()
   @ApiResponse({
@@ -30,7 +17,7 @@ export class UserController {
     type: [UserResponseDto],
   })
   async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.userRepository.find();
+    const users = await this.userService.findAllUsers();
     return users.map((user) => this.toDto(user));
   }
 
@@ -57,33 +44,7 @@ export class UserController {
     },
   })
   async create(@Body() userData: UserCreateDto): Promise<string> {
-    const errors = await validate(userData);
-    if (errors.length > 0) {
-      return 'Validation failed';
-    }
-
-    const user = new User();
-    Object.assign(user, userData);
-
-    await this.userRepository.save(user);
-    return 'User created successfully';
-  }
-
-  @Delete(':id')
-  @ApiResponse({
-    status: 200,
-    description: 'User deleted successfully',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-  })
-  async remove(@Param('id') id: number): Promise<string> {
-    const result = await this.userRepository.delete(id);
-    if (result.affected === 0) {
-      return 'User not found';
-    }
-    return 'User deleted successfully';
+    return this.userService.createUser(userData);
   }
 
   @Patch(':id')
@@ -102,26 +63,12 @@ export class UserController {
     @Param('id') id: number,
     @Body() userData: UserCreateDto,
   ): Promise<string> {
-    const errors = await validate(userData);
-    if (errors.length > 0) {
-      return 'Validation failed';
-    }
-
-    // Using findOneBy method
-    const user = await this.userRepository.findOneBy({ id });
-    if (!user) {
-      return 'User not found';
-    }
-
-    Object.assign(user, userData);
-
-    await this.userRepository.save(user);
-    return 'User updated successfully';
+    return this.userService.updateUser(id, userData);
   }
 
+  // 将 User 实体转换为 UserResponseDto
   private toDto(user: User): UserResponseDto {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userDto } = user;
-    return userDto;
+    const { id, name, email, createdAt, updatedAt } = user;
+    return { id, name, email, createdAt, updatedAt };
   }
 }
