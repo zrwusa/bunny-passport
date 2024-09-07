@@ -88,6 +88,6 @@ export class UserService {
 
   private async sendEmailVerificationLink(newEmail: string): Promise<void> {
     console.log(`sending link to newEmail${newEmail}`);
-    // Implement email verification logic
+    // TODO Implement email verification logic
   }
 }

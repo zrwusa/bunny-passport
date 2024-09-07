@@ -66,7 +66,7 @@ export class UserController {
     return this.userService.updateUser(id, userData);
   }
 
-  // 将 User 实体转换为 UserResponseDto
+  // Convert User entity to UserResponseDto
   private toDto(user: User): UserResponseDto {
     const { id, name, email, createdAt, updatedAt } = user;
     return { id, name, email, createdAt, updatedAt };

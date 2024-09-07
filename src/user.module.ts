@@ -53,9 +53,4 @@ export class User {
     description: 'The date and time when the user was last updated',
   })
   updatedAt!: Date;
-
-  // @Column()
-  // @IsInt()
-  // @ApiProperty({ description: 'The age of the user' })
-  // age!: number;
 }

@@ -5,9 +5,15 @@ import { UserController } from './user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.module';
 import { UserService } from './user.service';
+import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Make ConfigModule globally available throughout the application
+    }),
+    AuthModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
