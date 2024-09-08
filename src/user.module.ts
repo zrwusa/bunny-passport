@@ -1,3 +1,4 @@
+// src/user.module.ts
 import {
   Column,
   CreateDateColumn,

@@ -1,3 +1,4 @@
+// src/user.service.ts
 import { Injectable } from '@nestjs/common';
 import { User } from './user.module';
 import { Repository } from 'typeorm';
