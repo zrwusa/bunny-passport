@@ -79,6 +79,16 @@ export class UserService {
     return 'User updated successfully';
   }
 
+  async deleteUser(id: number): Promise<string> {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      return 'User not found';
+    }
+
+    await this.userRepository.remove(user);
+    return 'User deleted successfully';
+  }
+
   private async comparePasswords(
     inputPassword: string,
     storedPassword: string,

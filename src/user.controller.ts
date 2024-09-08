@@ -1,9 +1,19 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserCreateDto } from './user-create.dto';
 import { UserResponseDto } from './user-response.dto';
 import { UserService } from './user.service';
 import { User } from './user.module';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('users')
 @Controller('users')
@@ -48,6 +58,7 @@ export class UserController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('google')) // Add the Google AuthGuard here
   @ApiBody({
     type: UserCreateDto,
   })
@@ -64,6 +75,20 @@ export class UserController {
     @Body() userData: UserCreateDto,
   ): Promise<string> {
     return this.userService.updateUser(id, userData);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard('google')) // Add the Google AuthGuard here
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  async remove(@Param('id') id: number): Promise<string> {
+    return this.userService.deleteUser(id);
   }
 
   // Convert User entity to UserResponseDto
