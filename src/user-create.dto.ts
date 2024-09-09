@@ -8,7 +8,7 @@ export class UserCreateDto {
     maxLength: 20,
     example: 'John Doe',
   })
-  name!: string;
+  username: string;
 
   @ApiProperty({
     description: 'The email address of the user',
@@ -20,7 +20,7 @@ export class UserCreateDto {
     description: 'The password of the user',
     example: 'Password123!',
   })
-  password!: string;
+  password: string;
 
   @ApiProperty({
     description: 'The old password (required for updating password)',

@@ -1,14 +1,41 @@
 // src/auth/auth.module.ts
+import { JwtModule } from '@nestjs/jwt';
+import { RedisModule } from '../redis.module';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './jwt.strategy';
 import { Module } from '@nestjs/common';
+import { LocalStrategy } from './local.strategy';
+import { AuthController } from './auth.controller';
+import { UserService } from '../user.service';
+import { UserModule } from '../user.module';
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './google.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GitHubStrategy } from './github.strategy';
-import { AuthController } from './auth.controller';
-import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [PassportModule, ConfigModule],
+  imports: [
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '60m' },
+      }),
+    }),
+    PassportModule,
+    RedisModule, // Import Redis module
+    UserModule,
+  ],
   controllers: [AuthController],
-  providers: [GoogleStrategy, GitHubStrategy],
+  providers: [
+    UserService,
+    AuthService,
+    GoogleStrategy,
+    GitHubStrategy,
+    LocalStrategy,
+    JwtStrategy,
+  ],
+  exports: [AuthService],
 })
 export class AuthModule {}

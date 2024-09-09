@@ -9,12 +9,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { UserCreateDto } from './user-create.dto';
 import { UserResponseDto } from './user-response.dto';
 import { UserService } from './user.service';
-import { User } from './user.module';
-import { AuthGuard } from '@nestjs/passport';
+import { User } from './user.entity';
+import { JwtAuthGuard } from './guards/jwt';
 
 @ApiTags('users')
 @Controller('users')
@@ -27,6 +27,8 @@ export class UserController {
     description: 'List all users',
     type: [UserResponseDto],
   })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.userService.findAllUsers();
     return users.map((user) => this.toDto(user));
@@ -39,7 +41,7 @@ export class UserController {
       default: {
         summary: 'Default example',
         value: {
-          name: 'John Doe',
+          username: 'John Doe',
           email: 'john.doe@example.com',
           password: 'Password123!',
         },
@@ -59,7 +61,7 @@ export class UserController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard('google')) // Add the Google AuthGuard here
+  @UseGuards(JwtAuthGuard)
   @ApiBody({
     type: UserCreateDto,
   })
@@ -78,8 +80,9 @@ export class UserController {
     return this.userService.updateUser(id, userData);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  @UseGuards(AuthGuard('google')) // Add the Google AuthGuard here
   @ApiResponse({
     status: 200,
     description: 'User deleted successfully',
@@ -94,7 +97,7 @@ export class UserController {
 
   // Convert User entity to UserResponseDto
   private toDto(user: User): UserResponseDto {
-    const { id, name, email, createdAt, updatedAt } = user;
-    return { id, name, email, createdAt, updatedAt };
+    const { id, username, email, createdAt, updatedAt } = user;
+    return { id, username, email, createdAt, updatedAt };
   }
 }

@@ -8,7 +8,7 @@ export class UserUpdateDto {
     maxLength: 20,
     example: 'John Doe',
   })
-  name!: string;
+  username!: string;
 
   @ApiProperty({
     description: 'The email address of the user',

@@ -1,57 +1,101 @@
 // src/auth/auth.controller.ts
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
-import { ConfigService } from '@nestjs/config';
+import { JwtAuthGuard } from '../guards/jwt';
+import { LoginDto } from './login.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private authService: AuthService) {}
 
-  @Get('github')
-  @UseGuards(AuthGuard('github'))
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async githubAuth(@Req() req) {
-    // GitHub login redirects to GitHub for authentication
-  }
-
-  @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
-  githubAuthRedirect(@Req() req, @Res() res) {
-    // After successful login, handle the authenticated user here
-    // return {
-    //   message: 'User information from GitHub',
-    //   user: req.user,
-    // };
-
-    // After successful login, redirect to the frontend login page with user info
-    const user = req.user;
-    // Optionally, you can pass user information via query parameters or other methods
-    res.redirect(
-      `http://localhost:${this.configService.get('FRONT_PORT')}/auth/sign-in?auth=${encodeURIComponent(JSON.stringify(user))}`,
-    );
+  @Post('login')
+  async login(@Body() user: LoginDto) {
+    return this.authService.login(user);
   }
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async googleAuth(@Req() req) {
-    // Google login redirects to Google for authentication
+  async googleLogin() {
+    // Redirect to Google
   }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleAuthRedirect(@Req() req, @Res() res) {
-    // // After successful login, handle the authenticated user here
-    // return {
-    //   message: 'User information from Google',
-    //   user: req.user,
-    // };
+  async googleLoginCallback(@Request() req, @Res() res) {
+    const token = await this.authService.oauthLogin(req.user, 'google');
+    res.redirect(`/success?token=${token.access_token}`);
+  }
 
-    // After successful login, redirect to the frontend login page with user info
-    const user = req.user;
-    // Optionally, you can pass user information via query parameters or other methods
-    res.redirect(
-      `http://localhost:${this.configService.get('FRONT_PORT')}/auth/sign-in?auth=${encodeURIComponent(JSON.stringify(user))}`,
-    );
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  async githubLogin() {
+    // Redirect to Github
+  }
+
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  async githubLoginCallback(@Request() req, @Res() res) {
+    const token = await this.authService.oauthLogin(req.user, 'github');
+    res.redirect(`/success?token=${token.access_token}`);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('refresh')
+  async refreshToken(
+    @Request() req,
+    @Body('refresh_token') refreshToken: string,
+  ) {
+    return this.authService.refresh(req.user, refreshToken);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Request() req, @Body('refresh_token') refreshToken: string) {
+    const authorizationHeader = req.headers.authorization;
+
+    // Check if Authorization header exists
+    if (!authorizationHeader) {
+      return { message: 'Authorization header not found' };
+    }
+
+    // Extract the access token
+    const accessToken = authorizationHeader.split(' ')[1];
+
+    if (!accessToken) {
+      return { message: 'Invalid token format' };
+    }
+
+    // Decode access token to extract jti and other details
+    const decoded = this.authService.jwtService.decode(accessToken);
+    const jti = decoded['jti']; // Extract jti from the token payload
+
+    if (jti) {
+      // Optionally blacklist the access token
+      const expiresIn = decoded['exp'] - Math.floor(Date.now() / 1000);
+      await this.authService.blacklistToken(jti, expiresIn);
+    }
+
+    // Decode refresh token to get its ID
+    const refreshTokenDecoded =
+      this.authService.jwtService.decode(refreshToken);
+    const refreshTokenId = refreshTokenDecoded['rti'];
+
+    if (refreshTokenId) {
+      // Delete the refresh token from Redis using userId and rti
+      await this.authService.deleteRefreshToken(decoded['sub'], refreshTokenId);
+    }
+
+    return { message: 'Logged out successfully' };
   }
 }

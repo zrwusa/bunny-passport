@@ -1,6 +1,6 @@
 // src/user.service.ts
 import { Injectable } from '@nestjs/common';
-import { User } from './user.module';
+import { User } from './user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserCreateDto } from './user-create.dto';
@@ -9,6 +9,8 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
+  private readonly users = [];
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -51,8 +53,8 @@ export class UserService {
       return 'User not found';
     }
 
-    if (userData.name && userData.name !== user.name) {
-      user.name = userData.name;
+    if (userData.username && userData.username !== user.username) {
+      user.username = userData.username;
     }
 
     if (userData.password) {
@@ -88,6 +90,31 @@ export class UserService {
 
     await this.userRepository.remove(user);
     return 'User deleted successfully';
+  }
+
+  // Find users based on username (for Local login)
+  async findOneByUsername(email: string): Promise<User | undefined> {
+    return this.userRepository.findOneBy({ email });
+  }
+
+  // Find users based on OAuth ID and provider (for Google, Github OAuth2 login)
+  async findOneByOAuthProvider(
+    oauthId: string,
+    provider: string,
+  ): Promise<User | undefined> {
+    return this.userRepository.findOne({ where: { oauthId, provider } });
+  }
+
+  // Create O Auth User (for creating new users when first logging in via Google or Github)
+  async createOAuthUser(profile: any, provider: string): Promise<User> {
+    const newUser = this.userRepository.create({
+      username: profile.displayName || profile.username,
+      email: profile.email,
+      oauthId: profile.oauthid,
+      provider,
+      createdAt: new Date(),
+    });
+    return this.userRepository.save(newUser);
   }
 
   private async comparePasswords(
