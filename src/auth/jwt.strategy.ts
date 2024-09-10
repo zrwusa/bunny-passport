@@ -2,7 +2,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -21,15 +20,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   // Verify JWT and check if it is in blacklist
-  async validate(req: Request, payload: any) {
+  async validate(payload: any) {
     // const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     // Check if the JWT's unique identifier (jti) is in the blacklist
     const isBlacklisted = await this.authService.isBlacklisted(payload.jti);
     if (isBlacklisted) {
-      throw new UnauthorizedException('Token is blacklisted');
+      throw new UnauthorizedException(
+        'Token has been blacklisted, that means you have logged out',
+      );
     }
 
-    // Returns the authenticated user object
-    return { userId: payload.sub, email: payload.email };
+    // Returns the authenticated user object.ts
+    return { userId: payload.id, email: payload.email };
   }
 }

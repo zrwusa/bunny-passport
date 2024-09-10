@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
+import { omit } from '../utils';
 
 @Injectable()
 export class AuthService {
@@ -14,16 +15,16 @@ export class AuthService {
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
   ) {}
 
-  // 生成和存储 refresh_token
-  private async generateTokens(user: any) {
+  // Generate and store refresh_token
+  async generateTokens(user: any) {
     const payload = {
       email: user.email,
-      sub: user.id,
-      jti: uuidv4(), // 每个 token 独有的 jti
+      id: user.id,
+      jti: uuidv4(), // jti unique to each token
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshTokenId = uuidv4(); // 生成 refresh_token 的唯一 ID
+    const refreshTokenId = uuidv4(); // Generate a unique ID for refresh_token
     const refreshToken = this.jwtService.sign(
       { ...payload, rti: refreshTokenId },
       { expiresIn: '7d' },
@@ -31,21 +32,16 @@ export class AuthService {
 
     // 存储 refresh_token 到 Redis
     await this.redisClient.set(
-      `refresh_token:${user.id}:${refreshTokenId}`, // 使用 userId 和 refreshTokenId 作为 key
+      `refresh_token:${user.id}:${refreshTokenId}`, // Use userId and refreshTokenId as keys
       refreshToken,
       'EX',
-      7 * 24 * 60 * 60, // 设置过期时间，与 refresh_token 一致
+      7 * 24 * 60 * 60, // Set expiration time, consistent with refresh_token
     );
 
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
     };
-  }
-
-  // 统一登录处理方法
-  private async loginWithValidatedUser(user: any) {
-    return this.generateTokens(user); // 统一调用生成 tokens
   }
 
   // OAuth2 authentication
@@ -62,7 +58,8 @@ export class AuthService {
         provider,
       );
     }
-    return this.loginWithValidatedUser(user); // 统一调用登录方法
+
+    return user;
   }
 
   // Local authenticated user
@@ -79,35 +76,38 @@ export class AuthService {
   // Local login
   async login(user: any) {
     const validatedUser = await this.validateUser(user.email, user.password);
-    return this.loginWithValidatedUser(validatedUser); // 统一调用登录方法
+    const tokens = await this.generateTokens(validatedUser); // 统一调用登录方法
+    const safeUser = omit(validatedUser, 'password', 'createdAt', 'updatedAt');
+    return { user: safeUser, tokens };
   }
 
   // Refresh Access Token
-  async refresh(user: any, refreshToken: string) {
-    const { rti } = this.jwtService.decode(refreshToken) as { rti: string };
+  async refresh(refreshToken: string) {
+    const decoded = this.jwtService.decode(refreshToken);
+    const { rti } = decoded;
     const storedToken = await this.redisClient.get(
-      `refresh_token:${user.id}:${rti}`,
+      `refresh_token:${decoded.id}:${rti}`,
     );
 
     if (!storedToken || storedToken !== refreshToken) {
       throw new UnauthorizedException('Invalid Refresh Token');
     }
 
-    // 生成新的 access_token
+    // Generate new access_token
     const newAccessToken = this.jwtService.sign(
-      { email: user.email, sub: user.id, jti: uuidv4() },
+      { email: decoded.email, id: decoded.id, jti: uuidv4() },
       { expiresIn: '15m' },
     );
 
     return { access_token: newAccessToken };
   }
 
-  // 删除 refresh_token
+  // Delete refresh_token
   async deleteRefreshToken(userId: string, refreshTokenId: string) {
     await this.redisClient.del(`refresh_token:${userId}:${refreshTokenId}`);
   }
 
-  // 添加 access_token 到黑名单
+  // Add access_token to blacklist
   async blacklistToken(jti: string, expiresIn: number) {
     await this.redisClient.set(
       `blacklist_token:${jti}`,
@@ -117,7 +117,7 @@ export class AuthService {
     );
   }
 
-  // 检查 token 是否在黑名单中
+  // Check if the token is in the blacklist
   async isBlacklisted(jti: string): Promise<boolean> {
     const result = await this.redisClient.get(`blacklist_token:${jti}`);
     return result === 'true';

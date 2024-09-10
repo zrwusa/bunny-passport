@@ -4,8 +4,8 @@ import {
   Controller,
   Get,
   Post,
+  Redirect,
   Request,
-  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -13,6 +13,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { LogoutDto } from './dto/logout.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -31,9 +33,12 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleLoginCallback(@Request() req, @Res() res) {
-    const token = await this.authService.oauthLogin(req.user, 'google');
-    res.redirect(`/success?token=${token.access_token}`);
+  @Redirect()
+  async googleLoginCallback(@Request() req) {
+    const tokens = await this.authService.generateTokens(req.user);
+    return {
+      url: `/success?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+    };
   }
 
   @Get('github')
@@ -44,25 +49,26 @@ export class AuthController {
 
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
-  async githubLoginCallback(@Request() req, @Res() res) {
-    const token = await this.authService.oauthLogin(req.user, 'github');
-    res.redirect(`/success?token=${token.access_token}`);
+  @Redirect()
+  async githubLoginCallback(@Request() req) {
+    const tokens = await this.authService.generateTokens(req.user);
+    return {
+      url: `/success?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+    };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('refresh')
-  async refreshToken(
-    @Request() req,
-    @Body('refresh_token') refreshToken: string,
-  ) {
-    return this.authService.refresh(req.user, refreshToken);
+  async refreshToken(@Request() req, @Body() body: RefreshTokenDto) {
+    const { refresh_token } = body;
+    return this.authService.refresh(refresh_token);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req, @Body('refresh_token') refreshToken: string) {
+  async logout(@Request() req, @Body() body: LogoutDto) {
     const authorizationHeader = req.headers.authorization;
+    const refreshToken = body.refresh_token;
 
     // Check if Authorization header exists
     if (!authorizationHeader) {
@@ -93,7 +99,7 @@ export class AuthController {
 
     if (refreshTokenId) {
       // Delete the refresh token from Redis using userId and rti
-      await this.authService.deleteRefreshToken(decoded['sub'], refreshTokenId);
+      await this.authService.deleteRefreshToken(decoded['id'], refreshTokenId);
     }
 
     return { message: 'Logged out successfully' };

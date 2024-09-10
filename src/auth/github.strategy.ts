@@ -26,7 +26,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
     profile: any,
     done: VerifyCallback,
   ): Promise<any> {
-    const user = await this.authService.oauthLogin(profile, 'github');
+    const { user } = await this.authService.oauthLogin(profile, 'github');
     done(null, user);
   }
 }

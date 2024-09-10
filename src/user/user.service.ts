@@ -16,7 +16,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // 获取所有用户
+  // Get all users
   async findAllUsers(): Promise<User[]> {
     return this.userRepository.find();
   }

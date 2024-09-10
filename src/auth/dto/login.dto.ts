@@ -1,4 +1,4 @@
-// src/auth/login.dto.ts
+// src/auth/dto/login.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
