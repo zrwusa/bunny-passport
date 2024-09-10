@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserCreateDto } from './user-create.dto';
+import { UserCreateDto } from './dot/user-create.dto';
 import { validate } from 'class-validator';
 import * as bcrypt from 'bcrypt';
 

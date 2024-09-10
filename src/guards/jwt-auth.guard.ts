@@ -1,4 +1,4 @@
-// src/guards/jwt.ts
+// src/guards/jwt-auth.guard.ts
 import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
