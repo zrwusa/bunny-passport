@@ -15,14 +15,20 @@ import { LoginDto } from './dto/login.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import {
+  ExpressReqWithUser,
+  JwtAccessTokenPayload,
+  JwtRefreshTokenPayload,
+} from './types';
+import { Request as ExpressReq } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() user: LoginDto) {
-    return this.authService.login(user);
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
   @Get('google')
@@ -34,10 +40,11 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @Redirect()
-  async googleLoginCallback(@Request() req) {
+  async googleLoginCallback(@Request() req: ExpressReqWithUser) {
+    // The user object is injected by Google Strategy validate function
     const tokens = await this.authService.generateTokens(req.user);
     return {
-      url: `/success?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+      url: `/success?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     };
   }
 
@@ -50,25 +57,28 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
   @Redirect()
-  async githubLoginCallback(@Request() req) {
+  async githubLoginCallback(@Request() req: ExpressReqWithUser) {
     const tokens = await this.authService.generateTokens(req.user);
     return {
-      url: `/success?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+      url: `/success?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     };
   }
 
   @Post('refresh')
-  async refreshToken(@Request() req, @Body() body: RefreshTokenDto) {
-    const { refresh_token } = body;
-    return this.authService.refresh(refresh_token);
+  async refreshToken(
+    @Request() req: ExpressReq,
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ) {
+    const { refreshToken } = refreshTokenDto;
+    return this.authService.refresh(refreshToken);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req, @Body() body: LogoutDto) {
+  async logout(@Request() req: ExpressReq, @Body() logoutDto: LogoutDto) {
     const authorizationHeader = req.headers.authorization;
-    const refreshToken = body.refresh_token;
+    const refreshToken = logoutDto.refreshToken;
 
     // Check if Authorization header exists
     if (!authorizationHeader) {
@@ -83,7 +93,8 @@ export class AuthController {
     }
 
     // Decode access token to extract jti and other details
-    const decoded = this.authService.jwtService.decode(accessToken);
+    const decoded =
+      this.authService.jwtService.decode<JwtAccessTokenPayload>(accessToken);
     const jti = decoded['jti']; // Extract jti from the token payload
 
     if (jti) {
@@ -94,12 +105,12 @@ export class AuthController {
 
     // Decode refresh token to get its ID
     const refreshTokenDecoded =
-      this.authService.jwtService.decode(refreshToken);
-    const refreshTokenId = refreshTokenDecoded['rti'];
+      this.authService.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
+    const refreshTokenId = refreshTokenDecoded.rti;
 
     if (refreshTokenId) {
       // Delete the refresh token from Redis using userId and rti
-      await this.authService.deleteRefreshToken(decoded['id'], refreshTokenId);
+      await this.authService.deleteRefreshToken(decoded.id, refreshTokenId);
     }
 
     return { message: 'Logged out successfully' };

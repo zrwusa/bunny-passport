@@ -6,6 +6,15 @@ import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { omit } from '../utils';
+import { User } from '../user/user.entity';
+import {
+  JwtRefreshTokenPayload,
+  PassportProvider,
+  ProviderProfile,
+  SafeUser,
+  Tokens,
+} from './types';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,46 +24,46 @@ export class AuthService {
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
   ) {}
 
-  // Generate and store refresh_token
-  async generateTokens(user: any) {
+  // Generate and store refreshToken
+  async generateTokens({ id, email }: User): Promise<Tokens> {
     const payload = {
-      email: user.email,
-      id: user.id,
-      jti: uuidv4(), // jti unique to each token
+      email,
+      id,
+      jti: uuidv4() as string, // jti unique to each token
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshTokenId = uuidv4(); // Generate a unique ID for refresh_token
+    const rti = uuidv4() as string; // Generate a unique ID for refreshToken
     const refreshToken = this.jwtService.sign(
-      { ...payload, rti: refreshTokenId },
+      { ...payload, rti },
       { expiresIn: '7d' },
     );
 
-    // 存储 refresh_token 到 Redis
+    // 存储 refreshToken 到 Redis
     await this.redisClient.set(
-      `refresh_token:${user.id}:${refreshTokenId}`, // Use userId and refreshTokenId as keys
+      `refreshToken:${id}:${rti}`, // Use userId and refreshTokenId as keys
       refreshToken,
       'EX',
-      7 * 24 * 60 * 60, // Set expiration time, consistent with refresh_token
+      7 * 24 * 60 * 60, // Set expiration time, consistent with refreshToken
     );
 
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      accessToken,
+      refreshToken,
     };
   }
 
   // OAuth2 authentication
-  async oauthLogin(profile: any, provider: string): Promise<any> {
-    let user = await this.userService.findOneByOAuthProvider(
-      profile.id,
-      provider,
-    );
+  async oauthLogin(
+    profile: ProviderProfile,
+    provider: PassportProvider,
+  ): Promise<User> {
+    const { id: oauthId, displayName: username, emails } = profile;
+    let user = await this.userService.findOneByOAuthProvider(oauthId, provider);
     if (!user) {
-      const { displayName: username, id: oauthid, emails } = profile;
       const email = emails[0].value;
       user = await this.userService.createOAuthUser(
-        { username, email, oauthid },
+        { username, email, oauthId },
         provider,
       );
     }
@@ -63,7 +72,7 @@ export class AuthService {
   }
 
   // Local authenticated user
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(email: string, password: string): Promise<User> {
     const user = await this.userService.findOneByUsername(email);
     if (!user)
       throw new UnauthorizedException('user or password does not exist');
@@ -74,8 +83,11 @@ export class AuthService {
   }
 
   // Local login
-  async login(user: any) {
-    const validatedUser = await this.validateUser(user.email, user.password);
+  async login({
+    email,
+    password,
+  }: LoginDto): Promise<{ user: SafeUser; tokens: Tokens }> {
+    const validatedUser = await this.validateUser(email, password);
     const tokens = await this.generateTokens(validatedUser); // 统一调用登录方法
     const safeUser = omit(validatedUser, 'password', 'createdAt', 'updatedAt');
     return { user: safeUser, tokens };
@@ -83,31 +95,29 @@ export class AuthService {
 
   // Refresh Access Token
   async refresh(refreshToken: string) {
-    const decoded = this.jwtService.decode(refreshToken);
-    const { rti } = decoded;
-    const storedToken = await this.redisClient.get(
-      `refresh_token:${decoded.id}:${rti}`,
-    );
+    const { id, email, rti } =
+      this.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
+    const storedToken = await this.redisClient.get(`refreshToken:${id}:${rti}`);
 
     if (!storedToken || storedToken !== refreshToken) {
       throw new UnauthorizedException('Invalid Refresh Token');
     }
 
-    // Generate new access_token
+    // Generate new accessToken
     const newAccessToken = this.jwtService.sign(
-      { email: decoded.email, id: decoded.id, jti: uuidv4() },
+      { email, id, jti: uuidv4() as string },
       { expiresIn: '15m' },
     );
 
-    return { access_token: newAccessToken };
+    return { accessToken: newAccessToken };
   }
 
-  // Delete refresh_token
-  async deleteRefreshToken(userId: string, refreshTokenId: string) {
-    await this.redisClient.del(`refresh_token:${userId}:${refreshTokenId}`);
+  // Delete refreshToken
+  async deleteRefreshToken(userId: string, rti: string) {
+    await this.redisClient.del(`refreshToken:${userId}:${rti}`);
   }
 
-  // Add access_token to blacklist
+  // Add accessToken to blacklist
   async blacklistToken(jti: string, expiresIn: number) {
     await this.redisClient.set(
       `blacklist_token:${jti}`,

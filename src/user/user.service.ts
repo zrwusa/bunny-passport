@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserCreateDto } from './dot/user-create.dto';
 import { validate } from 'class-validator';
 import * as bcrypt from 'bcrypt';
+import { CreateOAuthUserProfile } from '../auth/types';
 
 @Injectable()
 export class UserService {
@@ -106,11 +107,15 @@ export class UserService {
   }
 
   // Create O Auth User (for creating new users when first logging in via Google or Github)
-  async createOAuthUser(profile: any, provider: string): Promise<User> {
+  async createOAuthUser(
+    profile: CreateOAuthUserProfile,
+    provider: string,
+  ): Promise<User> {
+    const { username, email, oauthId } = profile;
     const newUser = this.userRepository.create({
-      username: profile.displayName || profile.username,
-      email: profile.email,
-      oauthId: profile.oauthid,
+      username,
+      email,
+      oauthId,
       provider,
       createdAt: new Date(),
     });

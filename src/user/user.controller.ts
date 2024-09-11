@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -29,7 +30,7 @@ export class UserController {
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  async findAll(): Promise<UserResponseDto[]> {
+  async findAll(@Req() req): Promise<UserResponseDto[]> {
     const users = await this.userService.findAllUsers();
     return users.map((user) => this.toDto(user));
   }
