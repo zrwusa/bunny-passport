@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { omit } from '../utils';
 import { User } from '../user/user.entity';
 import {
+  JwtAccessTokenPayload,
   JwtRefreshTokenPayload,
   PassportProvider,
   ProviderProfile,
@@ -120,6 +121,28 @@ export class AuthService {
     );
 
     return { accessToken: newAccessToken };
+  }
+
+  async logout(accessToken: string, refreshToken: string) {
+    // Decode access token to extract jti and other details
+    const decoded = this.jwtService.decode<JwtAccessTokenPayload>(accessToken);
+    const jti = decoded['jti']; // Extract jti from the token payload
+
+    if (jti) {
+      // Optionally blacklist the access token
+      const expiresIn = decoded['exp'] - Math.floor(Date.now() / 1000);
+      await this.blacklistToken(jti, expiresIn);
+    }
+
+    // Decode refresh token to get its ID
+    const refreshTokenDecoded =
+      this.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
+    const refreshTokenId = refreshTokenDecoded.rti;
+
+    if (refreshTokenId) {
+      // Delete the refresh token from Redis using userId and rti
+      await this.deleteRefreshToken(decoded.id, refreshTokenId);
+    }
   }
 
   // Delete refreshToken

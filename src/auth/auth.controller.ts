@@ -17,11 +17,7 @@ import { LoginDto } from './dto/login.dto';
 import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import {
-  ExpressReqWithUser,
-  JwtAccessTokenPayload,
-  JwtRefreshTokenPayload,
-} from '../types';
+import { ExpressReqWithUser } from '../types';
 import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -120,7 +116,7 @@ export class AuthController {
     @Request() req: ExpressReqWithUser,
     @Body() logoutDto: LogoutDto,
   ) {
-    // TODO These operations need to be moved to AuthService, and there is a bug: when we use a refresh token that no longer exists in Redis, it will still be added to the blacklist.
+    // TODO there is a bug: when we use a refresh token that no longer exists in Redis, it will still be added to the blacklist.
     const authorizationHeader = req.headers.authorization;
     const refreshToken = logoutDto.refreshToken;
 
@@ -136,26 +132,7 @@ export class AuthController {
       return { message: 'Invalid token format' };
     }
 
-    // Decode access token to extract jti and other details
-    const decoded =
-      this.authService.jwtService.decode<JwtAccessTokenPayload>(accessToken);
-    const jti = decoded['jti']; // Extract jti from the token payload
-
-    if (jti) {
-      // Optionally blacklist the access token
-      const expiresIn = decoded['exp'] - Math.floor(Date.now() / 1000);
-      await this.authService.blacklistToken(jti, expiresIn);
-    }
-
-    // Decode refresh token to get its ID
-    const refreshTokenDecoded =
-      this.authService.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
-    const refreshTokenId = refreshTokenDecoded.rti;
-
-    if (refreshTokenId) {
-      // Delete the refresh token from Redis using userId and rti
-      await this.authService.deleteRefreshToken(decoded.id, refreshTokenId);
-    }
+    await this.authService.logout(accessToken, refreshToken);
 
     return { message: 'Logged out successfully' };
   }
