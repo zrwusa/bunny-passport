@@ -4,6 +4,9 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { I18nExceptionFilter } from './common/filters/exception.filter';
+import { TranslationService } from './translation.service';
+import { I18nInterceptor } from './common/interceptors/i18n.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,9 +19,9 @@ async function bootstrap() {
   //   allowedHeaders: 'Content-Type, Authorization',
   //   credentials: true,
   // });
-
   app.useGlobalPipes(new ValidationPipe());
-
+  app.useGlobalFilters(new I18nExceptionFilter(app.get(TranslationService)));
+  app.useGlobalInterceptors(new I18nInterceptor(app.get(TranslationService)));
   const config = new DocumentBuilder()
     .setTitle('Bunny Nest API')
     .setDescription('The user API documentation')
@@ -49,6 +52,10 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, document, {
     swaggerOptions: {
+      requestInterceptor: (request) => {
+        request.headers['accept-language'] = 'zh'; // Can be set as default language or as required
+        return request;
+      },
       oauth2RedirectUrl: configService.get('SWAGGER_OAUTH2_REDIRECT_URL'),
       initOAuth: {
         clientId: configService.get('GOOGLE_CLIENT_ID'),

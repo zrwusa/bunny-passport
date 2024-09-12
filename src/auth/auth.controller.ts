@@ -120,6 +120,7 @@ export class AuthController {
     @Request() req: ExpressReqWithUser,
     @Body() logoutDto: LogoutDto,
   ) {
+    // TODO These operations need to be moved to AuthService, and there is a bug: when we use a refresh token that no longer exists in Redis, it will still be added to the blacklist.
     const authorizationHeader = req.headers.authorization;
     const refreshToken = logoutDto.refreshToken;
 

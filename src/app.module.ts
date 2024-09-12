@@ -8,6 +8,9 @@ import { User } from './user/user.entity';
 import { UserService } from './user/user.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { TranslationService } from './translation.service';
+// import { APP_INTERCEPTOR } from '@nestjs/core';
+// import { I18nInterceptor } from './common/interceptors/i18n.interceptor';
 
 @Module({
   imports: [
@@ -32,6 +35,14 @@ import { AuthModule } from './auth/auth.module';
     TypeOrmModule.forFeature([User]),
   ],
   controllers: [AppController, UserController],
-  providers: [AppService, UserService],
+  providers: [
+    AppService,
+    UserService,
+    TranslationService,
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: I18nInterceptor, // 使用 APP_INTERCEPTOR 全局提供拦截器Provide interceptors globally using APP_INTERCEPTOR
+    // },
+  ],
 })
 export class AppModule {}
