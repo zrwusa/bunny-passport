@@ -3,8 +3,10 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Redirect,
+  Req,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -12,19 +14,47 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import {
   ExpressReqWithUser,
   JwtAccessTokenPayload,
   JwtRefreshTokenPayload,
-} from './types';
+} from '../types';
 import { Request as ExpressReq } from 'express';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Post('register')
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+    schema: {
+      type: 'string',
+      example: 'User created successfully',
+    },
+  })
+  @ApiBody({
+    type: RegisterDto,
+    examples: {
+      default: {
+        summary: 'Default example',
+        value: {
+          username: 'John Doe',
+          email: 'john.doe@example.com',
+          password: 'Password123!',
+        },
+      },
+    },
+  })
+  async create(@Body() userData: RegisterDto): Promise<string> {
+    return this.authService.userService.createUser(userData);
+  }
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
@@ -76,7 +106,10 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req: ExpressReq, @Body() logoutDto: LogoutDto) {
+  async logout(
+    @Request() req: ExpressReqWithUser,
+    @Body() logoutDto: LogoutDto,
+  ) {
     const authorizationHeader = req.headers.authorization;
     const refreshToken = logoutDto.refreshToken;
 
@@ -114,5 +147,27 @@ export class AuthController {
     }
 
     return { message: 'Logged out successfully' };
+  }
+
+  @Patch('change-password')
+  @ApiBody({
+    type: ChangePasswordDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password updated successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Req() req: ExpressReqWithUser,
+    @Body() userData: ChangePasswordDto,
+  ): Promise<string> {
+    const userId = req.user.id; // Jwt Auth Guard will add user information to the request object
+    return this.authService.changePassword(userId, userData);
   }
 }

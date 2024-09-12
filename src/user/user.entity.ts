@@ -1,40 +1,29 @@
-// src/user.entity.ts
+// src/user/user.entity.ts
+import { BeforeInsert, Column, Entity, PrimaryColumn } from 'typeorm';
+import { generateUuNumId } from '../utils';
 import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { IsEmail, IsString, Length } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+  CreatedAtField,
+  EmailField,
+  IdField,
+  UpdatedAtField,
+  UsernameField,
+} from '../common/decorators';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn()
-  @ApiProperty({ description: 'The unique identifier of the user' })
-  id!: number;
+  @PrimaryColumn({ type: 'bigint' })
+  @IdField()
+  id!: string;
 
   @Column()
-  @IsString()
-  @Length(3, 20)
-  @ApiProperty({
-    description: 'The name of the user',
-    minLength: 3,
-    maxLength: 20,
-  })
+  @UsernameField()
   username: string;
 
   @Column()
-  @IsEmail()
-  @ApiProperty({ description: 'The email address of the user' })
+  @EmailField()
   email!: string;
 
-  @Column()
-  @IsString()
-  @Length(8, 127)
   @Column({ nullable: true })
-  @ApiProperty({ description: 'The password of the user' })
   password?: string;
 
   @Column({ unique: true, nullable: true })
@@ -43,22 +32,15 @@ export class User {
   @Column({ nullable: true })
   provider: string;
 
-  @CreateDateColumn({
-    name: 'created_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
-  @ApiProperty({ description: 'The date and time when the user was created' })
+  @CreatedAtField()
   createdAt!: Date;
 
-  @UpdateDateColumn({
-    name: 'updated_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
-  })
-  @ApiProperty({
-    description: 'The date and time when the user was last updated',
-  })
+  @UpdatedAtField()
   updatedAt!: Date;
+
+  // Use the BeforeInsert decorator to ensure execution before inserting data
+  @BeforeInsert()
+  async setId() {
+    this.id = generateUuNumId();
+  }
 }

@@ -1,21 +1,11 @@
 // src/user.controller.ts
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UserCreateDto } from './dot/user-create.dto';
-import { UserResponseDto } from './dot/user-response.dto';
+import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ResponseDto } from './dto/response.dto';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { DeleteDto } from './dto/delete.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -26,64 +16,15 @@ export class UserController {
   @ApiResponse({
     status: 200,
     description: 'List all users',
-    type: [UserResponseDto],
+    type: [ResponseDto],
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  async findAll(@Req() req): Promise<UserResponseDto[]> {
+  async findAll(): Promise<ResponseDto[]> {
     const users = await this.userService.findAllUsers();
-    return users.map((user) => this.toDto(user));
+    return users.map((user) => this.toResponseDto(user));
   }
 
-  @Post()
-  @ApiBody({
-    type: UserCreateDto,
-    examples: {
-      default: {
-        summary: 'Default example',
-        value: {
-          username: 'John Doe',
-          email: 'john.doe@example.com',
-          password: 'Password123!',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'User created successfully',
-    schema: {
-      type: 'string',
-      example: 'User created successfully',
-    },
-  })
-  async create(@Body() userData: UserCreateDto): Promise<string> {
-    return this.userService.createUser(userData);
-  }
-
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBody({
-    type: UserCreateDto,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'User updated successfully',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-  })
-  async update(
-    @Param('id') id: number,
-    @Body() userData: UserCreateDto,
-  ): Promise<string> {
-    return this.userService.updateUser(id, userData);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
   @ApiResponse({
     status: 200,
     description: 'User deleted successfully',
@@ -92,12 +33,15 @@ export class UserController {
     status: 404,
     description: 'User not found',
   })
-  async remove(@Param('id') id: number): Promise<string> {
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async remove(@Param() { id }: DeleteDto): Promise<string> {
     return this.userService.deleteUser(id);
   }
 
-  // Convert User entity to UserResponseDto
-  private toDto(user: User): UserResponseDto {
+  // Convert User entity to ResponseDto
+  private toResponseDto(user: User): ResponseDto {
     const { id, username, email, createdAt, updatedAt } = user;
     return { id, username, email, createdAt, updatedAt };
   }

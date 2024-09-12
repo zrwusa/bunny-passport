@@ -1,7 +1,6 @@
 import { Profile as GoogleProfile } from 'passport-google-oauth20';
 import { Profile as GithubProfile } from 'passport-github2';
-import { User } from '../user/user.entity';
-import { Request as ExpressReq } from 'express';
+import { User } from '../../user/user.entity';
 
 export type JwtTokenPayload = {
   email: string;
@@ -32,8 +31,6 @@ export type Tokens = {
 };
 
 export type SafeUser = Omit<User, 'password' | 'createdAt' | 'updatedAt'>;
-
-export type ExpressReqWithUser = ExpressReq & { user: User };
 
 export type JwtReqUser = { id: string; email: string };
 

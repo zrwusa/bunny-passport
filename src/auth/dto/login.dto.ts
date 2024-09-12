@@ -1,16 +1,10 @@
 // src/auth/dto/login.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
+import { EmailField, PasswordField } from '../../common/decorators';
 
 export class LoginDto {
-  @ApiProperty({
-    description: 'The email address of the user',
-    example: 'john.doe@example.com',
-  })
+  @EmailField('user')
   email!: string;
 
-  @ApiProperty({
-    description: 'The password of the user',
-    example: 'Password123!',
-  })
+  @PasswordField('user')
   password!: string;
 }

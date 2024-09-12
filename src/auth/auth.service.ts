@@ -13,13 +13,15 @@ import {
   ProviderProfile,
   SafeUser,
   Tokens,
-} from './types';
+} from '../types';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { validate } from 'class-validator';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
+    public userService: UserService,
     public jwtService: JwtService,
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
   ) {}
@@ -75,11 +77,11 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<User> {
     const user = await this.userService.findOneByUsername(email);
     if (!user)
-      throw new UnauthorizedException('user or password does not exist');
+      throw new UnauthorizedException('user or password does not match');
     if (bcrypt.compareSync(password, user.password)) {
       return user;
     }
-    throw new UnauthorizedException('user or password does not exist');
+    throw new UnauthorizedException('user or password does not match');
   }
 
   // Local login
@@ -131,5 +133,41 @@ export class AuthService {
   async isBlacklisted(jti: string): Promise<boolean> {
     const result = await this.redisClient.get(`blacklist_token:${jti}`);
     return result === 'true';
+  }
+
+  async changePassword(
+    id: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<string> {
+    const errors = await validate(changePasswordDto);
+    if (errors.length > 0) {
+      return 'Validation failed';
+    }
+
+    const user = await this.userService.userRepository.findOneBy({ id });
+    if (!user) {
+      return 'User not found';
+    }
+
+    const { email, password, oldPassword } = changePasswordDto;
+
+    if (!password) return 'Password is required';
+
+    if (!oldPassword) {
+      return 'Original password is required';
+    }
+
+    if (
+      user.password !== null &&
+      !(await this.userService.comparePasswords(oldPassword, user.password))
+    ) {
+      return 'Original password is incorrect';
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+
+    await this.userService.sendEmailVerificationLink(email);
+    await this.userService.userRepository.save(user);
+    return 'Password changed successfully';
   }
 }
