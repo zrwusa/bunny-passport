@@ -20,11 +20,11 @@ import { GitHubStrategy } from './github.strategy';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '60m' },
+        signOptions: { expiresIn: configService.get('JWT_SIGN_EXPIRES_IN') },
       }),
     }),
     PassportModule,
-    RedisModule, // Import Redis module
+    RedisModule,
     UserModule,
   ],
   controllers: [AuthController],

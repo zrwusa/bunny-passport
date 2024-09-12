@@ -25,10 +25,14 @@ import {
 import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('register')
   @ApiResponse({
@@ -73,8 +77,11 @@ export class AuthController {
   async googleLoginCallback(@Request() req: ExpressReqWithUser) {
     // The user object is injected by Google Strategy validate function
     const tokens = await this.authService.generateTokens(req.user);
+    const redirectTo = this.configService.get(
+      'OAUTH2_LOGIN_CALLBACK_REDIRECT_URL',
+    );
     return {
-      url: `/success?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
+      url: `${redirectTo}?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     };
   }
 
@@ -89,8 +96,11 @@ export class AuthController {
   @Redirect()
   async githubLoginCallback(@Request() req: ExpressReqWithUser) {
     const tokens = await this.authService.generateTokens(req.user);
+    const redirectTo = this.configService.get(
+      'OAUTH2_LOGIN_CALLBACK_REDIRECT_URL',
+    );
     return {
-      url: `/success?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
+      url: `${redirectTo}?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     };
   }
 

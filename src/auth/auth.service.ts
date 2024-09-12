@@ -17,12 +17,14 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { validate } from 'class-validator';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     public userService: UserService,
     public jwtService: JwtService,
+    private configService: ConfigService,
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
   ) {}
 
@@ -34,16 +36,18 @@ export class AuthService {
       jti: uuidv4() as string, // jti unique to each token
     };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN'),
+    });
     const rti = uuidv4() as string; // Generate a unique ID for refreshToken
     const refreshToken = this.jwtService.sign(
       { ...payload, rti },
-      { expiresIn: '7d' },
+      { expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN') },
     );
 
-    // 存储 refreshToken 到 Redis
+    // Store refreshToken to Redis
     await this.redisClient.set(
-      `refreshToken:${id}:${rti}`, // Use userId and refreshTokenId as keys
+      `refresh_token:${id}:${rti}`, // Use userId and refreshTokenId as keys
       refreshToken,
       'EX',
       7 * 24 * 60 * 60, // Set expiration time, consistent with refreshToken
@@ -60,10 +64,12 @@ export class AuthService {
     profile: ProviderProfile,
     provider: PassportProvider,
   ): Promise<User> {
-    const { id: oauthId, displayName: username, emails } = profile;
+    const { id: oauthId, emails } = profile;
     let user = await this.userService.findOneByOAuthProvider(oauthId, provider);
     if (!user) {
       const email = emails[0].value;
+      // Google profile does not provide a username field and can only be replaced by the email field. Github Profile does not provide a displayName field.
+      const username = profile.username || email || profile.displayName;
       user = await this.userService.createOAuthUser(
         { username, email, oauthId },
         provider,
@@ -90,7 +96,7 @@ export class AuthService {
     password,
   }: LoginDto): Promise<{ user: SafeUser; tokens: Tokens }> {
     const validatedUser = await this.validateUser(email, password);
-    const tokens = await this.generateTokens(validatedUser); // 统一调用登录方法
+    const tokens = await this.generateTokens(validatedUser);
     const safeUser = omit(validatedUser, 'password', 'createdAt', 'updatedAt');
     return { user: safeUser, tokens };
   }
@@ -99,7 +105,9 @@ export class AuthService {
   async refresh(refreshToken: string) {
     const { id, email, rti } =
       this.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
-    const storedToken = await this.redisClient.get(`refreshToken:${id}:${rti}`);
+    const storedToken = await this.redisClient.get(
+      `refresh_token:${id}:${rti}`,
+    );
 
     if (!storedToken || storedToken !== refreshToken) {
       throw new UnauthorizedException('Invalid Refresh Token');
@@ -108,7 +116,7 @@ export class AuthService {
     // Generate new accessToken
     const newAccessToken = this.jwtService.sign(
       { email, id, jti: uuidv4() as string },
-      { expiresIn: '15m' },
+      { expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN') },
     );
 
     return { accessToken: newAccessToken };
@@ -116,11 +124,12 @@ export class AuthService {
 
   // Delete refreshToken
   async deleteRefreshToken(userId: string, rti: string) {
-    await this.redisClient.del(`refreshToken:${userId}:${rti}`);
+    await this.redisClient.del(`refresh_token:${userId}:${rti}`);
   }
 
   // Add accessToken to blacklist
   async blacklistToken(jti: string, expiresIn: number) {
+    // TODO blacklist token key design
     await this.redisClient.set(
       `blacklist_token:${jti}`,
       'true',
@@ -141,6 +150,7 @@ export class AuthService {
   ): Promise<string> {
     const errors = await validate(changePasswordDto);
     if (errors.length > 0) {
+      // TODO http errors should be thrown?
       return 'Validation failed';
     }
 
