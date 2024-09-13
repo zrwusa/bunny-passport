@@ -1,21 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { en } from './i18n/en';
-import { zh } from './i18n/zh';
-import { get } from 'lodash';
+import { BusinessLogicNotificationCode } from './types';
+import { getNotificationByLand } from './common';
 
 @Injectable()
 export class TranslationService {
-  private readonly translations = {
-    en,
-    zh,
-  };
-
   async translate(
-    key: string,
+    key: BusinessLogicNotificationCode,
     lang: string,
-    parentPath: 'errors' | 'notifications' = 'errors',
   ): Promise<string> {
-    return get(this.translations[lang], `${parentPath}.${key}`) || key;
+    return getNotificationByLand(key as BusinessLogicNotificationCode, lang);
   }
 
   // Helper function to resolve the path

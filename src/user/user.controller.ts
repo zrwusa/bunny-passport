@@ -6,6 +6,7 @@ import { UserService } from './user.service';
 import { User } from './user.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { DeleteDto } from './dto/delete.dto';
+import { ServiceResponse } from '../interfaces';
 
 @ApiTags('users')
 @Controller('users')
@@ -36,7 +37,7 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async remove(@Param() { id }: DeleteDto): Promise<string> {
+  async remove(@Param() { id }: DeleteDto): Promise<ServiceResponse<User>> {
     return this.userService.deleteUser(id);
   }
 

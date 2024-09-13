@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
-import { I18nExceptionFilter } from './common/filters/exception.filter';
+import { ExceptionI18nFilter } from './common/filters/exception.filter';
 import { TranslationService } from './translation.service';
 import { I18nInterceptor } from './common/interceptors/i18n.interceptor';
 
@@ -20,7 +20,7 @@ async function bootstrap() {
   //   credentials: true,
   // });
   app.useGlobalPipes(new ValidationPipe());
-  app.useGlobalFilters(new I18nExceptionFilter(app.get(TranslationService)));
+  app.useGlobalFilters(new ExceptionI18nFilter(app.get(TranslationService)));
   app.useGlobalInterceptors(new I18nInterceptor(app.get(TranslationService)));
   const config = new DocumentBuilder()
     .setTitle('Bunny Nest API')

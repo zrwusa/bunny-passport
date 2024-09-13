@@ -1,6 +1,7 @@
 // src/auth/auth.controller.ts
 import {
   Body,
+  ConflictException,
   Controller,
   Get,
   Patch,
@@ -22,6 +23,8 @@ import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
+import { ServiceResponse } from '../interfaces';
+import { User } from '../user/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -52,8 +55,14 @@ export class AuthController {
       },
     },
   })
-  async create(@Body() userData: RegisterDto): Promise<string> {
-    return this.authService.userService.createUser(userData);
+  async create(@Body() userData: RegisterDto): Promise<ServiceResponse<User>> {
+    const res = await this.authService.userService.createUser(userData);
+    const { businessLogicCode } = res;
+    switch (businessLogicCode) {
+      case 'EMAIL_ALREADY_EXISTS':
+        throw new ConflictException(businessLogicCode);
+    }
+    return res;
   }
 
   @Post('login')

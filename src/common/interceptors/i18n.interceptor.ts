@@ -1,9 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { TranslationService } from '../../translation.service';
@@ -25,7 +20,6 @@ export class I18nInterceptor implements NestInterceptor {
           data.message = await this.translationService.translate(
             data.message,
             lang,
-            'notifications',
           );
         }
         return data;

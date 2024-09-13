@@ -19,6 +19,8 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { validate } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
+import { ServiceResponse } from '../interfaces';
+import { businessLogicProtocol } from '../common';
 
 @Injectable()
 export class AuthService {
@@ -81,25 +83,35 @@ export class AuthService {
   }
 
   // Local authenticated user
-  async validateUser(email: string, password: string): Promise<User> {
-    const user = await this.userService.findOneByUsername(email);
-    if (!user)
-      throw new UnauthorizedException('user or password does not match');
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<ServiceResponse<User>> {
+    const { createServiceErrorRes, createServiceSuccessRes } =
+      businessLogicProtocol('validateUser');
+    const res = await this.userService.findOneByUsername(email);
+    const { data: user } = res;
+
+    if (!user) return createServiceErrorRes('USER_OR_PASSWORD_DOES_NOT_MATCH');
     if (bcrypt.compareSync(password, user.password)) {
-      return user;
+      return createServiceSuccessRes('VALIDATE_USER_SUCCESSFULLY', user);
     }
-    throw new UnauthorizedException('user or password does not match');
   }
 
   // Local login
   async login({
     email,
     password,
-  }: LoginDto): Promise<{ user: SafeUser; tokens: Tokens }> {
-    const validatedUser = await this.validateUser(email, password);
+  }: LoginDto): Promise<ServiceResponse<{ user: SafeUser; tokens: Tokens }>> {
+    const { createServiceSuccessRes } = businessLogicProtocol('login');
+    const res = await this.validateUser(email, password);
+    const { data: validatedUser } = res;
     const tokens = await this.generateTokens(validatedUser);
     const safeUser = omit(validatedUser, 'password', 'createdAt', 'updatedAt');
-    return { user: safeUser, tokens };
+    return createServiceSuccessRes('LOGIN_SUCCESSFULLY', {
+      user: safeUser,
+      tokens,
+    });
   }
 
   // Refresh Access Token
