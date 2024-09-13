@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import { TranslationService } from '../../translation.service';
-import { BusinessLogicNotificationCode } from '../../types/i18n';
+import { BusinessLogicCode } from '../../types';
 
 // Capture and translate the HTTP errors of the NestJS specification
 @Catch(HttpException)
@@ -15,7 +15,7 @@ export class ExceptionI18nFilter implements ExceptionFilter {
     const exceptionResponse: any = exception.getResponse();
     const lang = request.headers['accept-language'] || 'en';
 
-    const message = exceptionResponse.message as BusinessLogicNotificationCode;
+    const message = exceptionResponse.message as BusinessLogicCode;
     const translatedMessage = await this.translationService.translate(
       message,
       lang,

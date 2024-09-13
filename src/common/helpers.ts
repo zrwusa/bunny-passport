@@ -1,9 +1,9 @@
 import { ServiceResponse } from '../interfaces';
-import { BUSINESS_LOGICS } from './constant';
-import { BusinessLogicNotificationCode } from '../types';
+import { BUSINESS_LOGICS } from './constants';
+import { BusinessLogicCode } from '../types';
 
-export function getNotificationByLand(
-  code: BusinessLogicNotificationCode,
+export function translateBusinessLogicCode(
+  code: BusinessLogicCode,
   lang: string = 'en',
 ): string {
   let error = {};
@@ -16,10 +16,10 @@ export function getNotificationByLand(
   return error ? error[lang] || error['en'] : code;
 }
 
-export function businessLogicProtocol<T extends keyof typeof BUSINESS_LOGICS>(
-  logicType: T,
-) {
-  const createServiceSuccessRes = function <
+export function serviceProtocolResFactory<
+  T extends keyof typeof BUSINESS_LOGICS,
+>(logicType: T) {
+  const createSuccessRes = function <
     B extends keyof (typeof BUSINESS_LOGICS)[T],
     D,
   >(notificationCode: B, data?: D): ServiceResponse<D> {
@@ -30,7 +30,7 @@ export function businessLogicProtocol<T extends keyof typeof BUSINESS_LOGICS>(
     };
   };
 
-  const createServiceErrorRes = function <
+  const createFailedRes = function <
     B extends keyof (typeof BUSINESS_LOGICS)[T],
   >(businessLogicCode: B): ServiceResponse<never> {
     return {
@@ -39,5 +39,5 @@ export function businessLogicProtocol<T extends keyof typeof BUSINESS_LOGICS>(
     };
   };
 
-  return { createServiceSuccessRes, createServiceErrorRes };
+  return { createSuccessRes, createFailedRes };
 }

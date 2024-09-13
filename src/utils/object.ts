@@ -10,3 +10,8 @@ export function omit<T extends object, K extends keyof T>(
 
   return newObj;
 }
+
+// Helper function to resolve the path
+export function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((prev, curr) => prev?.[curr], obj);
+}

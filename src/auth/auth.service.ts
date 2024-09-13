@@ -1,4 +1,4 @@
-// src/auth/auth.service.ts
+// src/auth/auth.helpers.ts
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -20,7 +20,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { validate } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
 import { ServiceResponse } from '../interfaces';
-import { businessLogicProtocol } from '../common';
+import { serviceProtocolResFactory } from '../common';
 
 @Injectable()
 export class AuthService {
@@ -87,14 +87,14 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<ServiceResponse<User>> {
-    const { createServiceErrorRes, createServiceSuccessRes } =
-      businessLogicProtocol('validateUser');
+    const { createFailedRes, createSuccessRes } =
+      serviceProtocolResFactory('validateUser');
     const res = await this.userService.findOneByUsername(email);
     const { data: user } = res;
 
-    if (!user) return createServiceErrorRes('USER_OR_PASSWORD_DOES_NOT_MATCH');
+    if (!user) return createFailedRes('USER_OR_PASSWORD_DOES_NOT_MATCH');
     if (bcrypt.compareSync(password, user.password)) {
-      return createServiceSuccessRes('VALIDATE_USER_SUCCESSFULLY', user);
+      return createSuccessRes('VALIDATE_USER_SUCCESSFULLY', user);
     }
   }
 
@@ -103,12 +103,12 @@ export class AuthService {
     email,
     password,
   }: LoginDto): Promise<ServiceResponse<{ user: SafeUser; tokens: Tokens }>> {
-    const { createServiceSuccessRes } = businessLogicProtocol('login');
+    const { createSuccessRes } = serviceProtocolResFactory('login');
     const res = await this.validateUser(email, password);
     const { data: validatedUser } = res;
     const tokens = await this.generateTokens(validatedUser);
     const safeUser = omit(validatedUser, 'password', 'createdAt', 'updatedAt');
-    return createServiceSuccessRes('LOGIN_SUCCESSFULLY', {
+    return createSuccessRes('LOGIN_SUCCESSFULLY', {
       user: safeUser,
       tokens,
     });

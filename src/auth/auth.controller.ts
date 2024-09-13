@@ -55,7 +55,9 @@ export class AuthController {
       },
     },
   })
-  async create(@Body() userData: RegisterDto): Promise<ServiceResponse<User>> {
+  async register(
+    @Body() userData: RegisterDto,
+  ): Promise<ServiceResponse<User>> {
     const res = await this.authService.userService.createUser(userData);
     const { businessLogicCode } = res;
     switch (businessLogicCode) {

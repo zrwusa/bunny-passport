@@ -1,4 +1,4 @@
-// src/user.service.ts
+// src/user.helpers.ts
 import { Injectable } from '@nestjs/common';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
@@ -7,7 +7,7 @@ import { RegisterDto } from '../auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { CreateOAuthUserProfile } from '../types';
 import { ServiceResponse } from '../interfaces';
-import { businessLogicProtocol } from '../common';
+import { serviceProtocolResFactory } from '../common';
 
 @Injectable()
 export class UserService {
@@ -25,37 +25,36 @@ export class UserService {
     const { email, password } = registerData;
     const existingUser = await this.userRepository.findOneBy({ email });
 
-    const { createServiceErrorRes, createServiceSuccessRes } =
-      businessLogicProtocol('createUser');
+    const { createFailedRes, createSuccessRes } =
+      serviceProtocolResFactory('createUser');
 
-    if (existingUser) return createServiceErrorRes('EMAIL_ALREADY_EXISTS');
+    if (existingUser) return createFailedRes('EMAIL_ALREADY_EXISTS');
 
     const user = new User();
     Object.assign(user, registerData);
     user.password = await bcrypt.hash(password, 10);
 
     const savedUser = await this.userRepository.save(user);
-    return createServiceSuccessRes('USER_CREATED_SUCCESSFULLY', savedUser);
+    return createSuccessRes('USER_CREATED_SUCCESSFULLY', savedUser);
   }
 
   async deleteUser(id: string): Promise<ServiceResponse<User>> {
-    const { createServiceErrorRes, createServiceSuccessRes } =
-      businessLogicProtocol('deleteUser');
+    const { createFailedRes, createSuccessRes } =
+      serviceProtocolResFactory('deleteUser');
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
-      return createServiceErrorRes('USER_NOT_FOUND');
+      return createFailedRes('USER_NOT_FOUND');
     }
 
     const deletedUser = await this.userRepository.remove(user);
-    return createServiceSuccessRes('USER_DELETED_SUCCESSFULLY', deletedUser);
+    return createSuccessRes('USER_DELETED_SUCCESSFULLY', deletedUser);
   }
 
   // Find users based on username (for Local login)
   async findOneByUsername(email: string): Promise<ServiceResponse<User>> {
-    const { createServiceSuccessRes } =
-      businessLogicProtocol('findOneByUsername');
+    const { createSuccessRes } = serviceProtocolResFactory('findOneByUsername');
     const user = await this.userRepository.findOneBy({ email });
-    return createServiceSuccessRes('FIND_ONE_BY_USERNAME_SUCCESSFULLY', user);
+    return createSuccessRes('FIND_ONE_BY_USERNAME_SUCCESSFULLY', user);
   }
 
   // Find users based on OAuth ID and provider (for Google, Github OAuth2 login)

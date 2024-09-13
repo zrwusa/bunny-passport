@@ -41,7 +41,7 @@ import { TranslationService } from './translation.service';
     TranslationService,
     // {
     //   provide: APP_INTERCEPTOR,
-    //   useClass: I18nInterceptor, // 使用 APP_INTERCEPTOR 全局提供拦截器Provide interceptors globally using APP_INTERCEPTOR
+    //   useClass: I18nInterceptor, // Provide interceptors globally using APP_INTERCEPTOR
     // },
   ],
 })

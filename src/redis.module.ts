@@ -10,10 +10,9 @@ import { ConfigService } from '@nestjs/config';
       provide: 'REDIS_CLIENT',
       useFactory: async (configService: ConfigService) => {
         return new Redis({
-          // TODO should all the env config has a default value?
-          host: configService.get('REDIS_HOST', 'localhost'),
-          password: configService.get('REDIS_PASSWORD', ''),
-          port: parseInt(configService.get('REDIS_PORT', '6379'), 10),
+          host: configService.get('REDIS_HOST'),
+          password: configService.get('REDIS_PASSWORD'),
+          port: parseInt(configService.get('REDIS_PORT'), 10),
         });
       },
       inject: [ConfigService],

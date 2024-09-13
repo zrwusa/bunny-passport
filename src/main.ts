@@ -4,9 +4,8 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
-import { ExceptionI18nFilter } from './common/filters/exception.filter';
+import { ExceptionI18nFilter, I18nInterceptor } from './common';
 import { TranslationService } from './translation.service';
-import { I18nInterceptor } from './common/interceptors/i18n.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

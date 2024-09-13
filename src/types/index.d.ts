@@ -1,4 +1,4 @@
 export * from './auth';
 export * from './user';
-export * from './i18n';
+export * from './business-logic';
 export * from './utils';
