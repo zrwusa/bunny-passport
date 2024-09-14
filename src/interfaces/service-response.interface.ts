@@ -1,8 +1,6 @@
-import { BusinessLogicCode } from '../types';
-
-export interface ServiceResponse<T> {
+export interface ServiceResponse<D, B> {
   success: boolean; // success sign
-  data?: T; // Business data (if successful)
+  data?: D; // Business data (if successful)
   message?: string | number | symbol; // error or success message
-  businessLogicCode?: BusinessLogicCode; // error code (optional)
+  serviceBusinessLogicCode: B; // error code (optional)
 }

@@ -7,7 +7,7 @@ import {
   IdField,
   UpdatedAtField,
   UsernameField,
-} from '../common/decorators';
+} from '../common';
 
 @Entity()
 export class User {

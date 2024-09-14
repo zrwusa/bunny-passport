@@ -1,14 +1,16 @@
-// src/auth/auth.controller.ts
+// src/auth/auth.controller-business-logics.ts
 import {
   Body,
   ConflictException,
   Controller,
   Get,
+  NotFoundException,
   Patch,
   Post,
   Redirect,
   Req,
   Request,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -23,8 +25,7 @@ import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
-import { ServiceResponse } from '../interfaces';
-import { User } from '../user/user.entity';
+import { createControllerResponseHandlers } from '../common';
 
 @Controller('auth')
 export class AuthController {
@@ -55,21 +56,28 @@ export class AuthController {
       },
     },
   })
-  async register(
-    @Body() userData: RegisterDto,
-  ): Promise<ServiceResponse<User>> {
+  async register(@Body() userData: RegisterDto) {
+    const { buildSuccessResponse } =
+      createControllerResponseHandlers('register');
     const res = await this.authService.userService.createUser(userData);
-    const { businessLogicCode } = res;
-    switch (businessLogicCode) {
+    const { success, serviceBusinessLogicCode, data } = res;
+    if (success) return buildSuccessResponse('REGISTERED_SUCCESSFULLY', data);
+    switch (serviceBusinessLogicCode) {
       case 'EMAIL_ALREADY_EXISTS':
-        throw new ConflictException(businessLogicCode);
+        throw new ConflictException(serviceBusinessLogicCode);
     }
-    return res;
   }
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+    const res = await this.authService.login(loginDto);
+    const { buildSuccessResponse } = createControllerResponseHandlers('login');
+    const { success, serviceBusinessLogicCode, data } = res;
+    if (success) return buildSuccessResponse('LOGGED_IN_SUCCESSFULLY', data);
+    switch (serviceBusinessLogicCode) {
+      case 'USER_OR_PASSWORD_DOES_NOT_MATCH':
+        throw new UnauthorizedException('USER_OR_PASSWORD_DOES_NOT_MATCH');
+    }
   }
 
   @Get('google')
@@ -117,7 +125,14 @@ export class AuthController {
     @Body() refreshTokenDto: RefreshTokenDto,
   ) {
     const { refreshToken } = refreshTokenDto;
-    return this.authService.refresh(refreshToken);
+    const res = await this.authService.refresh(refreshToken);
+    const { serviceBusinessLogicCode } = res;
+    switch (serviceBusinessLogicCode) {
+      case 'INVALID_REFRESH_TOKEN':
+        throw new UnauthorizedException(serviceBusinessLogicCode);
+    }
+
+    return res;
   }
 
   @ApiBearerAuth()
@@ -133,19 +148,20 @@ export class AuthController {
 
     // Check if Authorization header exists
     if (!authorizationHeader) {
-      return { message: 'Authorization header not found' };
+      throw new UnauthorizedException('AUTHORIZATION_HEADER_NOT_FOUND');
     }
 
     // Extract the access token
     const accessToken = authorizationHeader.split(' ')[1];
 
     if (!accessToken) {
-      return { message: 'Invalid token format' };
+      throw new UnauthorizedException('INVALID_TOKEN_FORMAT');
     }
 
     await this.authService.logout(accessToken, refreshToken);
 
-    return { message: 'Logged out successfully' };
+    const { buildSuccessResponse } = createControllerResponseHandlers('logout');
+    return buildSuccessResponse('LOGGED_OUT_SUCCESSFULLY');
   }
 
   @Patch('change-password')
@@ -165,8 +181,20 @@ export class AuthController {
   async changePassword(
     @Req() req: ExpressReqWithUser,
     @Body() userData: ChangePasswordDto,
-  ): Promise<string> {
+  ) {
     const userId = req.user.id; // Jwt Auth Guard will add user information to the request object
-    return this.authService.changePassword(userId, userData);
+    const res = await this.authService.changePassword(userId, userData);
+    const { success, serviceBusinessLogicCode, data } = res;
+    const { buildSuccessResponse } =
+      createControllerResponseHandlers('changePassword');
+
+    if (success)
+      return buildSuccessResponse('PASSWORD_CHANGED_SUCCESSFULLY', data);
+    switch (serviceBusinessLogicCode) {
+      case 'USER_NOT_FOUND':
+        throw new NotFoundException('USER_NOT_FOUND');
+      case 'ORIGINAL_PASSWORD_IS_INCORRECT':
+        throw new UnauthorizedException('ORIGINAL_PASSWORD_IS_INCORRECT');
+    }
   }
 }

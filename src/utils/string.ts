@@ -11,3 +11,23 @@ export function generateUuNumId(size = 18): string {
   }
   return id;
 }
+
+export function isUpperSnakeCase(str: string): boolean {
+  const regex = /^[A-Z]+(_[A-Z]+)*$/;
+  return regex.test(str);
+}
+
+export function isCamelCase(str: string): boolean {
+  const regex = /^[a-z]+([A-Z][a-z]*)*$/;
+  return regex.test(str);
+}
+
+export function isSnakeCase(str: string): boolean {
+  const regex = /^[a-z]+(_[a-z]+)*$/;
+  return regex.test(str);
+}
+
+export function isPascalCase(str: string): boolean {
+  const regex = /^[A-Z][a-z]*([A-Z][a-z]*)*$/;
+  return regex.test(str);
+}

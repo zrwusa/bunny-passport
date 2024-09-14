@@ -1,7 +1,13 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { TranslationService } from '../../translation.service';
+import { isUpperSnakeCase } from '../../utils';
 
 // Used to translate the fields in the returned information that need to be internationalized.
 @Injectable()
@@ -16,11 +22,33 @@ export class I18nInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       map(async (data) => {
-        if (data && data.message) {
-          data.message = await this.translationService.translate(
-            data.message,
-            lang,
-          );
+        if (data) {
+          const {
+            controllerBusinessLogicCode,
+            serviceBusinessLogicCode,
+            message,
+          } = data;
+          const translating =
+            controllerBusinessLogicCode || serviceBusinessLogicCode;
+          if (translating && isUpperSnakeCase(translating)) {
+            const res = await this.translationService.translate(
+              translating,
+              lang,
+            );
+
+            const { success, translated } = res;
+            if (success) {
+              data.message = translated;
+            }
+          }
+          if (message && isUpperSnakeCase(message)) {
+            const res = await this.translationService.translate(message, lang);
+
+            const { success, translated } = res;
+            if (success) {
+              data.message = translated;
+            }
+          }
         }
         return data;
       }),

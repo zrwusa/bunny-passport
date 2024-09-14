@@ -1,5 +1,5 @@
 // src/auth/auth.helpers.ts
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -12,15 +12,12 @@ import {
   JwtRefreshTokenPayload,
   PassportProvider,
   ProviderProfile,
-  SafeUser,
   Tokens,
 } from '../types';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { validate } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
-import { ServiceResponse } from '../interfaces';
-import { serviceProtocolResFactory } from '../common';
+import { createServiceResponseHandlers } from '../common';
 
 @Injectable()
 export class AuthService {
@@ -83,39 +80,45 @@ export class AuthService {
   }
 
   // Local authenticated user
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<ServiceResponse<User>> {
-    const { createFailedRes, createSuccessRes } =
-      serviceProtocolResFactory('validateUser');
+  async validateUser(email: string, password: string) {
+    const { buildFailureResponse, buildSuccessResponse } =
+      createServiceResponseHandlers('validateUser');
     const res = await this.userService.findOneByUsername(email);
     const { data: user } = res;
 
-    if (!user) return createFailedRes('USER_OR_PASSWORD_DOES_NOT_MATCH');
-    if (bcrypt.compareSync(password, user.password)) {
-      return createSuccessRes('VALIDATE_USER_SUCCESSFULLY', user);
+    if (!user) return buildFailureResponse('USER_OR_PASSWORD_DOES_NOT_MATCH');
+    if (!bcrypt.compareSync(password, user.password)) {
+      return buildFailureResponse('USER_OR_PASSWORD_DOES_NOT_MATCH');
     }
+    return buildSuccessResponse('VALIDATE_USER_SUCCESSFULLY', user);
   }
 
   // Local login
-  async login({
-    email,
-    password,
-  }: LoginDto): Promise<ServiceResponse<{ user: SafeUser; tokens: Tokens }>> {
-    const { createSuccessRes } = serviceProtocolResFactory('login');
+  async login({ email, password }: LoginDto) {
+    const { buildSuccessResponse } = createServiceResponseHandlers('login');
     const res = await this.validateUser(email, password);
-    const { data: validatedUser } = res;
-    const tokens = await this.generateTokens(validatedUser);
-    const safeUser = omit(validatedUser, 'password', 'createdAt', 'updatedAt');
-    return createSuccessRes('LOGIN_SUCCESSFULLY', {
-      user: safeUser,
-      tokens,
-    });
+    const { success, data: validatedUser } = res;
+    if (success) {
+      const tokens = await this.generateTokens(validatedUser);
+      const safeUser = omit(
+        validatedUser,
+        'password',
+        'createdAt',
+        'updatedAt',
+      );
+      return buildSuccessResponse('LOGIN_SUCCESSFULLY', {
+        user: safeUser,
+        tokens,
+      });
+    }
+
+    return res;
   }
 
   // Refresh Access Token
   async refresh(refreshToken: string) {
+    const { buildSuccessResponse, buildFailureResponse } =
+      createServiceResponseHandlers('refresh');
     const { id, email, rti } =
       this.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
     const storedToken = await this.redisClient.get(
@@ -123,7 +126,7 @@ export class AuthService {
     );
 
     if (!storedToken || storedToken !== refreshToken) {
-      throw new UnauthorizedException('Invalid Refresh Token');
+      return buildFailureResponse('INVALID_REFRESH_TOKEN');
     }
 
     // Generate new accessToken
@@ -132,7 +135,9 @@ export class AuthService {
       { expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN') },
     );
 
-    return { accessToken: newAccessToken };
+    return buildSuccessResponse('REFRESH_TOKEN_SUCCESSFULLY', {
+      accessToken: newAccessToken,
+    });
   }
 
   async logout(accessToken: string, refreshToken: string) {
@@ -164,13 +169,18 @@ export class AuthService {
 
   // Add accessToken to blacklist
   async blacklistToken(jti: string, expiresIn: number) {
+    const { buildSuccessResponse, buildFailureResponse } =
+      createServiceResponseHandlers('redisSet');
     // TODO blacklist token key design
-    await this.redisClient.set(
+    const redisRes = await this.redisClient.set(
       `blacklist_token:${jti}`,
       'true',
       'EX',
       expiresIn,
     );
+
+    if (redisRes !== 'OK') return buildSuccessResponse('NOT_OK');
+    return buildFailureResponse('OK');
   }
 
   // Check if the token is in the blacklist
@@ -179,40 +189,27 @@ export class AuthService {
     return result === 'true';
   }
 
-  async changePassword(
-    id: string,
-    changePasswordDto: ChangePasswordDto,
-  ): Promise<string> {
-    const errors = await validate(changePasswordDto);
-    if (errors.length > 0) {
-      // TODO http errors should be thrown?
-      return 'Validation failed';
-    }
-
+  async changePassword(id: string, changePasswordDto: ChangePasswordDto) {
     const user = await this.userService.userRepository.findOneBy({ id });
+    const { buildSuccessResponse, buildFailureResponse } =
+      createServiceResponseHandlers('changePassword');
     if (!user) {
-      return 'User not found';
+      return buildFailureResponse('USER_NOT_FOUND');
     }
 
     const { email, password, oldPassword } = changePasswordDto;
-
-    if (!password) return 'Password is required';
-
-    if (!oldPassword) {
-      return 'Original password is required';
-    }
 
     if (
       user.password !== null &&
       !(await this.userService.comparePasswords(oldPassword, user.password))
     ) {
-      return 'Original password is incorrect';
+      return buildFailureResponse('ORIGINAL_PASSWORD_IS_INCORRECT');
     }
 
     user.password = await bcrypt.hash(password, 10);
 
     await this.userService.sendEmailVerificationLink(email);
-    await this.userService.userRepository.save(user);
-    return 'Password changed successfully';
+    const savedUser = await this.userService.userRepository.save(user);
+    return buildSuccessResponse('PASSWORD_CHANGED_SUCCESSFULLY', savedUser);
   }
 }

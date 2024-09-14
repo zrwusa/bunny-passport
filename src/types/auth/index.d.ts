@@ -30,8 +30,6 @@ export type Tokens = {
   refreshToken: string;
 };
 
-export type SafeUser = Omit<User, 'password' | 'createdAt' | 'updatedAt'>;
-
 export type JwtReqUser = { id: string; email: string };
 
 export type PassportProvider = 'google' | 'github' | 'facebook';

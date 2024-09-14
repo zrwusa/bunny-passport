@@ -1,43 +1,64 @@
-import { ServiceResponse } from '../interfaces';
-import { BUSINESS_LOGICS } from './constants';
-import { BusinessLogicCode } from '../types';
+import {
+  CONTROLLER_BUSINESS_LOGICS,
+  SERVICE_BUSINESS_LOGICS,
+} from './constants';
 
-export function translateBusinessLogicCode(
-  code: BusinessLogicCode,
-  lang: string = 'en',
-): string {
-  let error = {};
-  for (const functionKey in BUSINESS_LOGICS) {
-    if (BUSINESS_LOGICS[functionKey].hasOwnProperty(code)) {
-      error = BUSINESS_LOGICS[functionKey][code];
-      break;
-    }
-  }
-  return error ? error[lang] || error['en'] : code;
-}
-
-export function serviceProtocolResFactory<
-  T extends keyof typeof BUSINESS_LOGICS,
->(logicType: T) {
-  const createSuccessRes = function <
-    B extends keyof (typeof BUSINESS_LOGICS)[T],
+export function createServiceResponseHandlers<
+  M extends keyof typeof SERVICE_BUSINESS_LOGICS,
+>(method: M) {
+  const buildSuccessResponse = function <
+    B extends keyof (typeof SERVICE_BUSINESS_LOGICS)[M],
     D,
-  >(notificationCode: B, data?: D): ServiceResponse<D> {
+  >(serviceBusinessLogicCode: B, data?: D) {
     return {
       success: true,
-      message: notificationCode,
+      message: SERVICE_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
+      serviceBusinessLogicCode: serviceBusinessLogicCode,
       data,
     };
   };
 
-  const createFailedRes = function <
-    B extends keyof (typeof BUSINESS_LOGICS)[T],
-  >(businessLogicCode: B): ServiceResponse<never> {
+  const buildFailureResponse = function <
+    B extends keyof (typeof SERVICE_BUSINESS_LOGICS)[M],
+  >(serviceBusinessLogicCode: B) {
     return {
       success: false,
-      message: businessLogicCode,
+      message: SERVICE_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
+      serviceBusinessLogicCode: serviceBusinessLogicCode,
+      data: null,
     };
   };
 
-  return { createSuccessRes, createFailedRes };
+  return { buildSuccessResponse, buildFailureResponse };
+}
+
+export function createControllerResponseHandlers<
+  M extends keyof typeof CONTROLLER_BUSINESS_LOGICS,
+>(method: M) {
+  const buildSuccessResponse = function <
+    B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
+    D,
+  >(serviceBusinessLogicCode: B, data?: D) {
+    return {
+      success: true,
+      message:
+        CONTROLLER_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
+      controllerBusinessLogicCode: serviceBusinessLogicCode,
+      data,
+    };
+  };
+
+  // const buildFailureResponse = function <
+  //   B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
+  // >(serviceBusinessLogicCode: B) {
+  //   return {
+  //     success: false,
+  //     message:
+  //       CONTROLLER_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
+  //     controllerBusinessLogicCode: serviceBusinessLogicCode,
+  //     data: null,
+  //   };
+  // };
+
+  return { buildSuccessResponse };
 }

@@ -1,10 +1,6 @@
 // src/auth/dto/change-password.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  EmailField,
-  PasswordField,
-  UsernameField,
-} from '../../common/decorators';
+import { EmailField, PasswordField, UsernameField } from '../../common';
 
 export class ChangePasswordDto {
   @UsernameField('user')
@@ -14,12 +10,12 @@ export class ChangePasswordDto {
   email!: string;
 
   @PasswordField('user')
-  password?: string;
+  password!: string;
 
   @ApiProperty({
     description: 'The old password (required for updating password)',
     example: 'Password123!',
     required: true,
   })
-  oldPassword?: string;
+  oldPassword!: string;
 }

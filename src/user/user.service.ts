@@ -6,8 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from '../auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { CreateOAuthUserProfile } from '../types';
-import { ServiceResponse } from '../interfaces';
-import { serviceProtocolResFactory } from '../common';
+import { createServiceResponseHandlers } from '../common';
 
 @Injectable()
 export class UserService {
@@ -17,44 +16,48 @@ export class UserService {
   ) {}
 
   // Get all users
-  async findAllUsers(): Promise<User[]> {
-    return this.userRepository.find();
+  async findAllUsers() {
+    const allUsers = await this.userRepository.find();
+    const { buildSuccessResponse } =
+      createServiceResponseHandlers('findAllUsers');
+    return buildSuccessResponse('FIND_USERS_SUCCESSFULLY', allUsers);
   }
 
-  async createUser(registerData: RegisterDto): Promise<ServiceResponse<User>> {
+  async createUser(registerData: RegisterDto) {
     const { email, password } = registerData;
     const existingUser = await this.userRepository.findOneBy({ email });
 
-    const { createFailedRes, createSuccessRes } =
-      serviceProtocolResFactory('createUser');
+    const { buildFailureResponse, buildSuccessResponse } =
+      createServiceResponseHandlers('createUser');
 
-    if (existingUser) return createFailedRes('EMAIL_ALREADY_EXISTS');
+    if (existingUser) return buildFailureResponse('EMAIL_ALREADY_EXISTS');
 
     const user = new User();
     Object.assign(user, registerData);
     user.password = await bcrypt.hash(password, 10);
 
     const savedUser = await this.userRepository.save(user);
-    return createSuccessRes('USER_CREATED_SUCCESSFULLY', savedUser);
+    return buildSuccessResponse('USER_CREATED_SUCCESSFULLY', savedUser);
   }
 
-  async deleteUser(id: string): Promise<ServiceResponse<User>> {
-    const { createFailedRes, createSuccessRes } =
-      serviceProtocolResFactory('deleteUser');
+  async deleteUser(id: string) {
+    const { buildFailureResponse, buildSuccessResponse } =
+      createServiceResponseHandlers('deleteUser');
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
-      return createFailedRes('USER_NOT_FOUND');
+      return buildFailureResponse('USER_NOT_FOUND');
     }
 
     const deletedUser = await this.userRepository.remove(user);
-    return createSuccessRes('USER_DELETED_SUCCESSFULLY', deletedUser);
+    return buildSuccessResponse('USER_DELETED_SUCCESSFULLY', deletedUser);
   }
 
   // Find users based on username (for Local login)
-  async findOneByUsername(email: string): Promise<ServiceResponse<User>> {
-    const { createSuccessRes } = serviceProtocolResFactory('findOneByUsername');
+  async findOneByUsername(email: string) {
+    const { buildSuccessResponse } =
+      createServiceResponseHandlers('findOneByUsername');
     const user = await this.userRepository.findOneBy({ email });
-    return createSuccessRes('FIND_ONE_BY_USERNAME_SUCCESSFULLY', user);
+    return buildSuccessResponse('FIND_ONE_BY_USERNAME_SUCCESSFULLY', user);
   }
 
   // Find users based on OAuth ID and provider (for Google, Github OAuth2 login)

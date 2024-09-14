@@ -1,4 +1,4 @@
-export const BUSINESS_LOGICS = {
+export const SERVICE_BUSINESS_LOGICS = {
   createUser: {
     EMAIL_ALREADY_EXISTS: {
       en: 'Email already exists',
@@ -7,6 +7,16 @@ export const BUSINESS_LOGICS = {
     USER_CREATED_SUCCESSFULLY: {
       en: 'User created successfully',
       zh: '用户已创建成功',
+    },
+  },
+  refresh: {
+    INVALID_REFRESH_TOKEN: {
+      en: 'Invalid Refresh Token',
+      zh: '刷新令牌失效',
+    },
+    REFRESH_TOKEN_SUCCESSFULLY: {
+      en: 'Refresh token successfully',
+      zh: '刷新令牌成功',
     },
   },
   deleteUser: {
@@ -39,6 +49,36 @@ export const BUSINESS_LOGICS = {
     LOGIN_SUCCESSFULLY: {
       en: 'Login successfully',
       zh: '登录成功',
+    },
+  },
+  redisSet: {
+    OK: {
+      en: 'Redis get successfully',
+      zh: 'Redis获取值成功',
+    },
+    NOT_OK: {
+      en: 'Redis get failed',
+      zh: 'Redis获取值失败',
+    },
+  },
+  changePassword: {
+    USER_NOT_FOUND: {
+      en: 'User not found',
+      zh: '用户未找到',
+    },
+    ORIGINAL_PASSWORD_IS_INCORRECT: {
+      en: 'Original password is incorrect',
+      zh: '原密码不正确',
+    },
+    PASSWORD_CHANGED_SUCCESSFULLY: {
+      en: 'Password changed successfully',
+      zh: '密码修改成功',
+    },
+  },
+  findAllUsers: {
+    FIND_USERS_SUCCESSFULLY: {
+      en: 'Find users successfully',
+      zh: '获取用户列表成功',
     },
   },
 };
