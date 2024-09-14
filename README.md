@@ -1,8 +1,20 @@
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
 ## Description
+
+![system architecture diagram](https://raw.githubusercontent.com/zrwusa/assets/master/images/bunny-nest/bunny-farm.webp)
+
+Bunny Nest is part of this system architecture and is responsible for the API service in this architecture.
+
+It is a microservice framework based on NestJS, used to build RESTful APIs:
+
+ - Implements Google and Github OAuth 2.0 authentication, and unifies JWT authentication. Session information is stored in Redis.
+ - TypeORM combined with PostgreSQL is used to implement structured data storage.
+ - Standardizes service layer communication protocols and standardizes controller layer communication protocols.
+ - Implements i18n (internationalization).
+ - Swagger UI
+ - SOLID Principle
+
+
 
 ## Project setup
 
