@@ -18,13 +18,9 @@ export const CONTROLLER_BUSINESS_LOGICS = {
       en: 'Registered successfully',
       zh: '注册成功',
     },
-    INVALID_TOKEN_FORMAT: {
-      en: 'Invalid token format',
-      zh: '无效令牌格式',
-    },
-    LOGGED_OUT_SUCCESSFULLY: {
-      en: 'Logged out successfully',
-      zh: '登出成功',
+    EMAIL_ALREADY_EXISTS: {
+      en: 'Email already exists',
+      zh: '邮箱已经注册过了',
     },
   },
   login: {
@@ -35,6 +31,20 @@ export const CONTROLLER_BUSINESS_LOGICS = {
     USER_OR_PASSWORD_DOES_NOT_MATCH: {
       en: 'User or password does not match',
       zh: '用户名和密码不匹配',
+    },
+    LOGGED_IN_FAILED: {
+      en: 'Logged in failed',
+      zh: '登录失败',
+    },
+  },
+  refresh: {
+    REFRESH_TOKEN_FAILED: {
+      en: 'Refresh token failed',
+      zh: '刷新令牌失效',
+    },
+    REFRESH_TOKEN_SUCCESSFULLY: {
+      en: 'Refresh token successfully',
+      zh: '刷新令牌成功',
     },
   },
   changePassword: {

@@ -1,7 +1,7 @@
-// src/auth/dto/register.dto.ts
+// src/user/dto/create-user.dto.ts
 import { EmailField, PasswordField, UsernameField } from '../../common';
 
-export class RegisterDto {
+export class CreateUserDto {
   @UsernameField('user')
   username: string;
 

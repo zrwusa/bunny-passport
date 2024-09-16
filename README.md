@@ -21,7 +21,7 @@ It is a microservice framework based on NestJS, used to build RESTful APIs:
 ### .env setup
 ```text
 PORT=8080
-FRONT_PORT=3000
+FRONT_END_PORT=3000
 
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432

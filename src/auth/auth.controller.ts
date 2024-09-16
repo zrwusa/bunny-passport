@@ -17,15 +17,22 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
-import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { ExpressReqWithUser } from '../types';
+import { ControllerResponse, ExpressReqWithUser, Tokens } from '../types';
 import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
 import { createControllerResponseHandlers } from '../common';
+import { UserMapper } from '../user/mapper/user.mapper';
+import { ResponseUserDto } from '../user/dto/response-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -56,37 +63,59 @@ export class AuthController {
       },
     },
   })
-  async register(@Body() userData: RegisterDto) {
-    const { buildSuccessResponse } =
+  async register(
+    @Body() registerDto: RegisterDto,
+  ): Promise<ControllerResponse<'register', ResponseUserDto>> {
+    const { buildSuccessResponse, throwFailure } =
       createControllerResponseHandlers('register');
-    const res = await this.authService.userService.createUser(userData);
+    const res = await this.authService.userService.createUser(registerDto);
     const { success, serviceBusinessLogicCode, data } = res;
-    if (success) return buildSuccessResponse('REGISTERED_SUCCESSFULLY', data);
+    const safeUser = UserMapper.toResponseDto(data);
+    if (success)
+      return buildSuccessResponse('REGISTERED_SUCCESSFULLY', safeUser);
     switch (serviceBusinessLogicCode) {
       case 'EMAIL_ALREADY_EXISTS':
-        throw new ConflictException(serviceBusinessLogicCode);
+        throwFailure(ConflictException, 'EMAIL_ALREADY_EXISTS');
     }
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(
+    @Body() loginDto: LoginDto,
+  ): Promise<
+    ControllerResponse<'login', { user: ResponseUserDto; tokens: Tokens }>
+  > {
     const res = await this.authService.login(loginDto);
-    const { buildSuccessResponse } = createControllerResponseHandlers('login');
-    const { success, serviceBusinessLogicCode, data } = res;
-    if (success) return buildSuccessResponse('LOGGED_IN_SUCCESSFULLY', data);
+    const { buildSuccessResponse, throwFailure } =
+      createControllerResponseHandlers('login');
+    const {
+      success,
+      serviceBusinessLogicCode,
+      data: { user: resUser, tokens },
+    } = res;
+    const user = UserMapper.toResponseDto(resUser);
+    if (success)
+      return buildSuccessResponse('LOGGED_IN_SUCCESSFULLY', { user, tokens });
     switch (serviceBusinessLogicCode) {
       case 'USER_OR_PASSWORD_DOES_NOT_MATCH':
-        throw new UnauthorizedException('USER_OR_PASSWORD_DOES_NOT_MATCH');
+        throwFailure(UnauthorizedException, 'USER_OR_PASSWORD_DOES_NOT_MATCH');
+        break;
+      case 'LOGIN_FAILED':
+        throwFailure(UnauthorizedException, 'LOGGED_IN_FAILED');
+        break;
     }
+    throwFailure(UnauthorizedException, 'LOGGED_IN_FAILED');
   }
 
   @Get('google')
+  @ApiOperation({ summary: 'Google OAuth login' })
   @UseGuards(AuthGuard('google'))
   async googleLogin() {
-    // Redirect to Google
+    // Redirects to Google OAuth login page
   }
 
   @Get('google/callback')
+  @ApiOperation({ summary: 'Google OAuth callback' })
   @UseGuards(AuthGuard('google'))
   @Redirect()
   async googleLoginCallback(@Request() req: ExpressReqWithUser) {
@@ -123,16 +152,17 @@ export class AuthController {
   async refreshToken(
     @Request() req: ExpressReq,
     @Body() refreshTokenDto: RefreshTokenDto,
-  ) {
+  ): Promise<ControllerResponse<'refresh', { accessToken: string }>> {
     const { refreshToken } = refreshTokenDto;
     const res = await this.authService.refresh(refreshToken);
-    const { serviceBusinessLogicCode } = res;
-    switch (serviceBusinessLogicCode) {
-      case 'INVALID_REFRESH_TOKEN':
-        throw new UnauthorizedException(serviceBusinessLogicCode);
-    }
+    const { success, data } = res;
+    const { buildSuccessResponse, throwFailure } =
+      createControllerResponseHandlers('refresh');
 
-    return res;
+    if (success)
+      return buildSuccessResponse('REFRESH_TOKEN_SUCCESSFULLY', data);
+
+    throwFailure(UnauthorizedException, 'REFRESH_TOKEN_FAILED');
   }
 
   @ApiBearerAuth()
@@ -141,26 +171,28 @@ export class AuthController {
   async logout(
     @Request() req: ExpressReqWithUser,
     @Body() logoutDto: LogoutDto,
-  ) {
+  ): Promise<ControllerResponse<'logout'>> {
     // TODO there is a bug: when we use a refresh token that no longer exists in Redis, it will still be added to the blacklist.
     const authorizationHeader = req.headers.authorization;
     const refreshToken = logoutDto.refreshToken;
 
+    const { buildSuccessResponse, throwFailure } =
+      createControllerResponseHandlers('logout');
+
     // Check if Authorization header exists
     if (!authorizationHeader) {
-      throw new UnauthorizedException('AUTHORIZATION_HEADER_NOT_FOUND');
+      throwFailure(UnauthorizedException, 'AUTHORIZATION_HEADER_NOT_FOUND');
     }
 
     // Extract the access token
     const accessToken = authorizationHeader.split(' ')[1];
 
     if (!accessToken) {
-      throw new UnauthorizedException('INVALID_TOKEN_FORMAT');
+      throwFailure(UnauthorizedException, 'INVALID_TOKEN_FORMAT');
     }
 
     await this.authService.logout(accessToken, refreshToken);
 
-    const { buildSuccessResponse } = createControllerResponseHandlers('logout');
     return buildSuccessResponse('LOGGED_OUT_SUCCESSFULLY');
   }
 
@@ -185,16 +217,18 @@ export class AuthController {
     const userId = req.user.id; // Jwt Auth Guard will add user information to the request object
     const res = await this.authService.changePassword(userId, userData);
     const { success, serviceBusinessLogicCode, data } = res;
-    const { buildSuccessResponse } =
+    const { buildSuccessResponse, throwFailure } =
       createControllerResponseHandlers('changePassword');
 
     if (success)
       return buildSuccessResponse('PASSWORD_CHANGED_SUCCESSFULLY', data);
     switch (serviceBusinessLogicCode) {
       case 'USER_NOT_FOUND':
-        throw new NotFoundException('USER_NOT_FOUND');
+        throwFailure(NotFoundException, 'USER_NOT_FOUND');
+        break;
       case 'ORIGINAL_PASSWORD_IS_INCORRECT':
-        throw new UnauthorizedException('ORIGINAL_PASSWORD_IS_INCORRECT');
+        throwFailure(UnauthorizedException, 'ORIGINAL_PASSWORD_IS_INCORRECT');
+        break;
     }
   }
 }

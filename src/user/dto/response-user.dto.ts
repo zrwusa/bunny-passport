@@ -1,13 +1,13 @@
-// src/response.dto.ts
+// src/response-user.dto.ts
 import {
   CreatedAtField,
   EmailField,
   IdField,
   UpdatedAtField,
   UsernameField,
-} from '../../common/decorators';
+} from '../../common';
 
-export class ResponseDto {
+export class ResponseUserDto {
   @IdField('user')
   id!: string;
 

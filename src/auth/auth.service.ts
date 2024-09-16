@@ -5,7 +5,6 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
-import { omit } from '../utils';
 import { User } from '../user/user.entity';
 import {
   JwtAccessTokenPayload,
@@ -95,24 +94,25 @@ export class AuthService {
 
   // Local login
   async login({ email, password }: LoginDto) {
-    const { buildSuccessResponse } = createServiceResponseHandlers('login');
+    const { buildSuccessResponse, buildFailureResponse } =
+      createServiceResponseHandlers('login');
     const res = await this.validateUser(email, password);
-    const { success, data: validatedUser } = res;
+    const { success, data: validatedUser, serviceBusinessLogicCode } = res;
     if (success) {
       const tokens = await this.generateTokens(validatedUser);
-      const safeUser = omit(
-        validatedUser,
-        'password',
-        'createdAt',
-        'updatedAt',
-      );
+
       return buildSuccessResponse('LOGIN_SUCCESSFULLY', {
-        user: safeUser,
+        user: validatedUser,
         tokens,
       });
     }
 
-    return res;
+    switch (serviceBusinessLogicCode) {
+      case 'USER_OR_PASSWORD_DOES_NOT_MATCH':
+        return buildFailureResponse('USER_OR_PASSWORD_DOES_NOT_MATCH');
+    }
+
+    return buildFailureResponse('LOGIN_FAILED');
   }
 
   // Refresh Access Token

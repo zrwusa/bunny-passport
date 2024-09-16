@@ -8,12 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ResponseDto } from './dto/response.dto';
+import { ResponseUserDto } from './dto/response-user.dto';
 import { UserService } from './user.service';
-import { User } from './user.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { DeleteDto } from './dto/delete.dto';
+import { DeleteUserDto } from './dto/delete-user.dto';
 import { createControllerResponseHandlers } from '../common';
+import { UserMapper } from './mapper/user.mapper';
 
 @ApiTags('users')
 @Controller('users')
@@ -24,7 +24,7 @@ export class UserController {
   @ApiResponse({
     status: 200,
     description: 'List all users',
-    type: [ResponseDto],
+    type: [ResponseUserDto],
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -33,7 +33,7 @@ export class UserController {
     const { success, data } = res;
     const { buildSuccessResponse } =
       createControllerResponseHandlers('findAll');
-    const users = data.map((user) => this.toResponseDto(user));
+    const users = data.map((user) => UserMapper.toResponseDto(user));
     if (success) return buildSuccessResponse('FIND_USERS_SUCCESSFULLY', users);
   }
 
@@ -48,7 +48,7 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async delete(@Param() { id }: DeleteDto) {
+  async delete(@Param() { id }: DeleteUserDto) {
     const res = await this.userService.deleteUser(id);
     const { success, serviceBusinessLogicCode, data } = res;
     const { buildSuccessResponse } =
@@ -59,11 +59,5 @@ export class UserController {
       case 'USER_NOT_FOUND':
         throw new NotFoundException('USER_NOT_FOUND');
     }
-  }
-
-  // Convert User entity to ResponseDto
-  private toResponseDto(user: User): ResponseDto {
-    const { id, username, email, createdAt, updatedAt } = user;
-    return { id, username, email, createdAt, updatedAt };
   }
 }

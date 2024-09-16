@@ -50,6 +50,14 @@ export const SERVICE_BUSINESS_LOGICS = {
       en: 'Login successfully',
       zh: '登录成功',
     },
+    USER_OR_PASSWORD_DOES_NOT_MATCH: {
+      en: 'User or password does not match',
+      zh: '用户名或密码错误',
+    },
+    LOGIN_FAILED: {
+      en: 'Login failed',
+      zh: '登录失败，未知原因',
+    },
   },
   redisSet: {
     OK: {

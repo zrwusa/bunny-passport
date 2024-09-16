@@ -2,6 +2,8 @@ import {
   CONTROLLER_BUSINESS_LOGICS,
   SERVICE_BUSINESS_LOGICS,
 } from './constants';
+import { ControllerResponse, ServiceResponse } from '../types';
+import { HttpException } from '@nestjs/common/exceptions/http.exception';
 
 export function createServiceResponseHandlers<
   M extends keyof typeof SERVICE_BUSINESS_LOGICS,
@@ -9,7 +11,7 @@ export function createServiceResponseHandlers<
   const buildSuccessResponse = function <
     B extends keyof (typeof SERVICE_BUSINESS_LOGICS)[M],
     D,
-  >(serviceBusinessLogicCode: B, data?: D) {
+  >(serviceBusinessLogicCode: B, data?: D): ServiceResponse<M, D> {
     return {
       success: true,
       message: SERVICE_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
@@ -20,7 +22,7 @@ export function createServiceResponseHandlers<
 
   const buildFailureResponse = function <
     B extends keyof (typeof SERVICE_BUSINESS_LOGICS)[M],
-  >(serviceBusinessLogicCode: B) {
+  >(serviceBusinessLogicCode: B): ServiceResponse<M, null> {
     return {
       success: false,
       message: SERVICE_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
@@ -38,27 +40,22 @@ export function createControllerResponseHandlers<
   const buildSuccessResponse = function <
     B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
     D,
-  >(serviceBusinessLogicCode: B, data?: D) {
+  >(controllerBusinessLogicCode: B, data?: D): ControllerResponse<M, D> {
     return {
       success: true,
       message:
-        CONTROLLER_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
-      controllerBusinessLogicCode: serviceBusinessLogicCode,
+        CONTROLLER_BUSINESS_LOGICS[method][controllerBusinessLogicCode]['en'],
+      controllerBusinessLogicCode: controllerBusinessLogicCode,
       data,
     };
   };
 
-  // const buildFailureResponse = function <
-  //   B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
-  // >(serviceBusinessLogicCode: B) {
-  //   return {
-  //     success: false,
-  //     message:
-  //       CONTROLLER_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
-  //     controllerBusinessLogicCode: serviceBusinessLogicCode,
-  //     data: null,
-  //   };
-  // };
+  const throwFailure = function <
+    H extends new (...args: any[]) => HttpException,
+    B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
+  >(HttpExceptionClass: H, controllerBusinessLogicCode: B) {
+    throw new HttpExceptionClass(controllerBusinessLogicCode);
+  };
 
-  return { buildSuccessResponse };
+  return { buildSuccessResponse, throwFailure };
 }

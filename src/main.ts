@@ -59,6 +59,7 @@ async function bootstrap() {
       initOAuth: {
         clientId: configService.get('GOOGLE_CLIENT_ID'),
         clientSecret: configService.get('GOOGLE_CLIENT_SECRET'),
+        scopes: ['profile', 'email'],
       },
     },
   });
