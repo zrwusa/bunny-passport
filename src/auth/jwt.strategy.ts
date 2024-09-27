@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Verify JWT and check if it is in blacklist
+  // If jwt-guard finds that the request carries an access token, it will trigger this. If there is no jwt-guard, it will directly return a verification error message.
   async validate({
     jti,
     id,

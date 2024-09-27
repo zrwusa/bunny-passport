@@ -21,7 +21,7 @@ export type TranslateRes = {
 
 export type ServiceResponse<
   M extends keyof typeof SERVICE_BUSINESS_LOGICS,
-  D,
+  D = undefined,
 > = {
   success: boolean;
   serviceBusinessLogicCode: keyof (typeof SERVICE_BUSINESS_LOGICS)[M];

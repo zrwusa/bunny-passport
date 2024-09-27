@@ -1,4 +1,4 @@
-import { Request as ExpressReq } from 'express';
+import { Request } from 'express';
 import { User } from '../../user/user.entity';
 
-export type ExpressReqWithUser = ExpressReq & { user: User };
+export type ExpressReqWithUser = Request & { user: User };

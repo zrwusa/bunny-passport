@@ -1,4 +1,4 @@
-// src/auth/auth.controller-business-logics.ts
+// src/auth/auth.controller.ts
 import {
   Body,
   ConflictException,
@@ -33,6 +33,7 @@ import { ConfigService } from '@nestjs/config';
 import { createControllerResponseHandlers } from '../common';
 import { UserMapper } from '../user/mapper/user.mapper';
 import { ResponseUserDto } from '../user/dto/response-user.dto';
+import { GoogleAuthGuard } from '../guards/google-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -70,9 +71,12 @@ export class AuthController {
       createControllerResponseHandlers('register');
     const res = await this.authService.userService.createUser(registerDto);
     const { success, serviceBusinessLogicCode, data } = res;
-    const safeUser = UserMapper.toResponseDto(data);
-    if (success)
+    if (success) {
+      const safeUser = UserMapper.toResponseDto(data);
+
       return buildSuccessResponse('REGISTERED_SUCCESSFULLY', safeUser);
+    }
+
     switch (serviceBusinessLogicCode) {
       case 'EMAIL_ALREADY_EXISTS':
         throwFailure(ConflictException, 'EMAIL_ALREADY_EXISTS');
@@ -109,24 +113,61 @@ export class AuthController {
 
   @Get('google')
   @ApiOperation({ summary: 'Google OAuth login' })
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   async googleLogin() {
-    // Redirects to Google OAuth login page
+    // bootstrap to google oauth2 flow
   }
 
   @Get('google/callback')
   @ApiOperation({ summary: 'Google OAuth callback' })
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   @Redirect()
   async googleLoginCallback(@Request() req: ExpressReqWithUser) {
-    // The user object is injected by Google Strategy validate function
     const tokens = await this.authService.generateTokens(req.user);
-    const redirectTo = this.configService.get(
-      'OAUTH2_LOGIN_CALLBACK_REDIRECT_URL',
-    );
+
+    // get redirect_uri from session
+    const redirectTo =
+      req.session.redirect_uri ||
+      this.configService.get('OAUTH2_LOGIN_CALLBACK_DEFAULT_REDIRECT_URL');
+
+    // //Set HttpOnly and Secure Cookies
+    // res.cookie('accessToken', tokens.accessToken, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   // sameSite: 'Lax',
+    //   maxAge: 3600 * 1000,
+    // });
+    //
+    // res.cookie('refreshToken', tokens.refreshToken, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   // sameSite: 'Lax',
+    //   maxAge: 7 * 24 * 3600 * 1000,
+    // });
+
     return {
-      url: `${redirectTo}?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
+      url: `${redirectTo}?access-token=${tokens.accessToken}&refresh-token=${tokens.refreshToken}`,
     };
+
+    // return `
+    //     <html>
+    //     <head>
+    //         <title>Logging in...</title>
+    //     </head>
+    //     <body>
+    //         <script>
+    //             const accessToken = '${tokens.accessToken}';
+    //             const refreshToken = '${tokens.refreshToken}';
+    //
+    //             // 使用 postMessage 发送 tokens
+    //             postMessage({ accessToken, refreshToken }, 'http://localhost:3000');
+    //
+    //             // // 自动跳转到前端页面
+    //             // window.location.href = '${redirectTo}';
+    //         </script>
+    //     </body>
+    //     </html>
+    // `;
   }
 
   @Get('github')
@@ -140,9 +181,10 @@ export class AuthController {
   @Redirect()
   async githubLoginCallback(@Request() req: ExpressReqWithUser) {
     const tokens = await this.authService.generateTokens(req.user);
-    const redirectTo = this.configService.get(
-      'OAUTH2_LOGIN_CALLBACK_REDIRECT_URL',
-    );
+    // get redirect_uri from session
+    const redirectTo =
+      req.session.redirect_uri ||
+      this.configService.get('OAUTH2_LOGIN_CALLBACK_DEFAULT_REDIRECT_URL');
     return {
       url: `${redirectTo}?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
     };

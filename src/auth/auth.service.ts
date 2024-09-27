@@ -64,15 +64,19 @@ export class AuthService {
     provider: PassportProvider,
   ): Promise<User> {
     const { id: oauthId, emails } = profile;
-    let user = await this.userService.findOneByOAuthProvider(oauthId, provider);
+    let { data: user } = await this.userService.findOneByOAuthProvider(
+      oauthId,
+      provider,
+    );
     if (!user) {
       const email = emails[0].value;
       // Google profile does not provide a username field and can only be replaced by the email field. Github Profile does not provide a displayName field.
       const username = profile.username || email || profile.displayName;
-      user = await this.userService.createOAuthUser(
+      const { data } = await this.userService.createOAuthUser(
         { username, email, oauthId },
         provider,
       );
+      if (data) user = data;
     }
 
     return user;
@@ -187,6 +191,21 @@ export class AuthService {
   async isBlacklisted(jti: string): Promise<boolean> {
     const result = await this.redisClient.get(`blacklist_token:${jti}`);
     return result === 'true';
+  }
+
+  async validateToken(token: string) {
+    try {
+      const JWT_SECRET = this.configService.get('JWT_SECRET');
+      const payload = this.jwtService.verify(token, { secret: JWT_SECRET });
+
+      if (!payload || !payload.sub) {
+        throw new Error('Invalid token');
+      }
+
+      return payload;
+    } catch (error: any) {
+      throw new Error(`Token validation failed, ${error.messages}`);
+    }
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto) {

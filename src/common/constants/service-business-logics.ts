@@ -89,4 +89,34 @@ export const SERVICE_BUSINESS_LOGICS = {
       zh: '获取用户列表成功',
     },
   },
+  findOneByOAuthProvider: {
+    FIND_ONE_USER_SUCCESSFULLY: {
+      en: 'Find one user successfully',
+      zh: '获取用户成功',
+    },
+    FIND_ONE_USER_FAILED: {
+      en: 'Find one user failed',
+      zh: '获取用户失败',
+    },
+  },
+  createOAuthUser: {
+    CREATE_OAUTH_USER_SUCCESSFULLY: {
+      en: 'Create oauth user successfully',
+      zh: '创建OAuth用户成功',
+    },
+    CREATE_OAUTH_USER_FAILED: {
+      en: 'Create oauth user failed',
+      zh: '创建OAuth用户失败',
+    },
+  },
+  comparePasswords: {
+    PASSWORDS_EQUAL: {
+      en: 'Passwords are equal',
+      zh: '密码相同',
+    },
+    PASSWORDS_DIFFERENT: {
+      en: 'Passwords are different',
+      zh: '密码不同',
+    },
+  },
 };

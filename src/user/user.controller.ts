@@ -1,4 +1,4 @@
-// src/user.controller-business-logics.ts
+// src/user.controller.ts
 import {
   Controller,
   Delete,

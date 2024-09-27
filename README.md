@@ -3,7 +3,7 @@
 
 ![system architecture diagram](https://raw.githubusercontent.com/zrwusa/assets/master/images/bunny-nest/bunny-farm.webp)
 
-Bunny Nest is part of this system architecture and is responsible for the API service in this architecture.
+Bunny Passport is part of this system architecture and is responsible for the API service in this architecture.
 
 It is a microservice framework based on NestJS, used to build RESTful APIs:
 
@@ -43,7 +43,7 @@ REDIS_PASSWORD=
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 GOOGLE_AUTHORIZED_REDIRECT_URI=http://localhost:8080/auth/google/callback
-OAUTH2_LOGIN_CALLBACK_REDIRECT_URL=/success
+OAUTH2_LOGIN_CALLBACK_DEFAULT_REDIRECT_URL=/success
 OAUTH2_GOOGLE_STRATEGY_CALLBACK_URL=http://localhost:8080/auth/google/callback
 OAUTH2_GITHUB_STRATEGY_CALLBACK_URL=http://localhost:8080/auth/github/callback
 
