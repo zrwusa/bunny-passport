@@ -273,4 +273,32 @@ export class AuthController {
         break;
     }
   }
+
+  @Patch('validate-token')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async validateToken(@Req() req: ExpressReqWithUser) {
+    const { authorization } = req.headers;
+    const { buildSuccessResponse, throwFailure } =
+      createControllerResponseHandlers('validateToken');
+    if (!authorization)
+      return throwFailure(UnauthorizedException, 'TOKEN_VALIDATION_FAILED');
+    const bearerSplit = authorization.split('Bearer');
+
+    if (bearerSplit.length < 2)
+      return throwFailure(UnauthorizedException, 'TOKEN_VALIDATION_FAILED');
+    const accessToken = bearerSplit[1].trim();
+    const res = await this.authService.validateToken(accessToken);
+    const { success, serviceBusinessLogicCode } = res;
+
+    if (success) return buildSuccessResponse('VALIDATED_SUCCESSFULLY');
+    switch (serviceBusinessLogicCode) {
+      case 'MALFORMED_TOKEN':
+        throwFailure(NotFoundException, 'MALFORMED_TOKEN');
+        break;
+      case 'TOKEN_VALIDATION_FAILED':
+        throwFailure(UnauthorizedException, 'TOKEN_VALIDATION_FAILED');
+        break;
+    }
+  }
 }

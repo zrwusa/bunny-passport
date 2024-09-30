@@ -3,33 +3,98 @@ import {
   CONTROLLER_BUSINESS_LOGICS,
   SERVICE_BUSINESS_LOGICS,
 } from './constants';
-import { ControllerResponse, ServiceResponse } from '../types';
+import {
+  BlStack,
+  ControllerResponse,
+  ServiceCode,
+  ServiceMethod,
+} from '../types';
 import { HttpException } from '@nestjs/common/exceptions/http.exception';
 
+function isServiceMethodArray(
+  methodOrMethods: ServiceMethod | ServiceMethod[],
+): methodOrMethods is ServiceMethod[] {
+  return Array.isArray(methodOrMethods);
+}
+
 export function createServiceResponseHandlers<
-  M extends keyof typeof SERVICE_BUSINESS_LOGICS,
->(method: M) {
-  const buildSuccessResponse = function <
-    B extends keyof (typeof SERVICE_BUSINESS_LOGICS)[M],
-    D,
-  >(serviceBusinessLogicCode: B, data?: D): ServiceResponse<M, D> {
-    return {
-      success: true,
-      message: SERVICE_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
-      serviceBusinessLogicCode: serviceBusinessLogicCode,
+  M extends ServiceMethod | ServiceMethod[],
+>(methodOrMethods: M) {
+  const buildResponse = <
+    C extends M extends ServiceMethod[]
+      ? ServiceCode<M[number]>
+      : M extends ServiceMethod
+        ? ServiceCode<M>
+        : never,
+    D = undefined,
+  >(
+    serviceBusinessLogicCode: C,
+    success: boolean,
+    data?: D,
+  ) => {
+    const res = {
+      success,
+      blStack: [] as BlStack,
+      serviceBusinessLogicCode,
       data,
     };
+
+    if (isServiceMethodArray(methodOrMethods)) {
+      methodOrMethods.forEach((method) => {
+        const methodLogic = SERVICE_BUSINESS_LOGICS[method];
+        if (serviceBusinessLogicCode in methodLogic) {
+          res.blStack.push({
+            method,
+            message:
+              methodLogic[serviceBusinessLogicCode as keyof typeof methodLogic][
+                'en'
+              ],
+          });
+        }
+      });
+    } else {
+      const method = methodOrMethods as ServiceMethod;
+      const methodLogic = SERVICE_BUSINESS_LOGICS[method];
+      if (serviceBusinessLogicCode in methodLogic) {
+        res.blStack.push({
+          method,
+          message:
+            methodLogic[serviceBusinessLogicCode as keyof typeof methodLogic][
+              'en'
+            ],
+        });
+      }
+    }
+
+    return res;
   };
 
-  const buildFailureResponse = function <
-    B extends keyof (typeof SERVICE_BUSINESS_LOGICS)[M],
-  >(serviceBusinessLogicCode: B): ServiceResponse<M, null> {
-    return {
-      success: false,
-      message: SERVICE_BUSINESS_LOGICS[method][serviceBusinessLogicCode]['en'],
-      serviceBusinessLogicCode: serviceBusinessLogicCode,
-      data: null,
-    };
+  const buildSuccessResponse = <
+    C extends M extends ServiceMethod[]
+      ? ServiceCode<M[number]>
+      : M extends ServiceMethod
+        ? ServiceCode<M>
+        : never,
+    D = undefined,
+  >(
+    serviceBusinessLogicCode: C,
+    data?: D,
+  ) => {
+    return buildResponse(serviceBusinessLogicCode, true, data);
+  };
+
+  const buildFailureResponse = <
+    C extends M extends ServiceMethod[]
+      ? ServiceCode<M[number]>
+      : M extends ServiceMethod
+        ? ServiceCode<M>
+        : never,
+    D = undefined,
+  >(
+    serviceBusinessLogicCode: C,
+    data?: D,
+  ) => {
+    return buildResponse(serviceBusinessLogicCode, false, data);
   };
 
   return { buildSuccessResponse, buildFailureResponse };

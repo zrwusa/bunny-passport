@@ -119,4 +119,28 @@ export const SERVICE_BUSINESS_LOGICS = {
       zh: '密码不同',
     },
   },
+  validateToken: {
+    MALFORMED_TOKEN: {
+      en: 'Malformed token',
+      zh: '畸形的令牌',
+    },
+    VALIDATED_SUCCESSFULLY: {
+      en: 'Validated successfully',
+      zh: '验证成功',
+    },
+    TOKEN_VALIDATION_FAILED: {
+      en: 'Token validation failed',
+      zh: '令牌验证失败',
+    },
+  },
+  validateJwtPayload: {
+    BLACKLISTED: {
+      en: 'BLACKLISTED',
+      zh: '已被列入黑名单',
+    },
+    VALIDATED_SUCCESSFULLY: {
+      en: 'Validated successfully',
+      zh: 'Payload验证成功',
+    },
+  },
 };

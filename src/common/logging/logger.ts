@@ -1,6 +1,6 @@
-import { Logger, LoggerService } from '@nestjs/common';
-import * as winston from 'winston';
-import { WinstonModule } from 'nest-winston';
+import { Logger, LoggerService } from "@nestjs/common";
+import * as winston from "winston";
+import { WinstonModule } from "nest-winston";
 
 // Define your winston formats and transports
 const appFileLog = new winston.transports.File({
@@ -44,6 +44,7 @@ const logger = WinstonModule.createLogger({
 export class BunnyLogger implements LoggerService {
   private readonly isProduction = process.env.NODE_ENV === 'production';
   private readonly logger = new Logger();
+
   log(message: string) {
     if (this.isProduction) {
       logger.log(message);

@@ -21,20 +21,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   // If jwt-guard finds that the request carries an access token, it will trigger this. If there is no jwt-guard, it will directly return a verification error message.
-  async validate({
-    jti,
-    id,
-    email,
-  }: JwtAccessTokenPayload): Promise<JwtReqUser> {
-    // const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    // Check if the JWT's unique identifier (jti) is in the blacklist
-    const isBlacklisted = await this.authService.isBlacklisted(jti);
-    if (isBlacklisted) {
-      throw new UnauthorizedException(
-        'Token has been blacklisted, that means you have logged out',
-      );
+  async validate(payload: JwtAccessTokenPayload): Promise<JwtReqUser> {
+    const { success, serviceBusinessLogicCode } =
+      await this.authService.validateJwtPayload(payload);
+    if (!success) {
+      throw new UnauthorizedException(serviceBusinessLogicCode);
     }
-
+    const { id, email } = payload;
     // The data returned from here will be bound to req.user
     return { id, email };
   }

@@ -1,6 +1,5 @@
 import { Profile as GoogleProfile } from 'passport-google-oauth20';
 import { Profile as GithubProfile } from 'passport-github2';
-import { User } from '../../user/user.entity';
 
 export type JwtTokenPayload = {
   email: string;

@@ -1,13 +1,8 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { TranslationService } from '../../translation.service';
-import { isUpperSnakeCase } from '../../utils';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
+import { TranslationService } from "../../translation.service";
+import { isUpperSnakeCase } from "../../utils";
 
 // Used to translate the fields in the returned information that need to be internationalized.
 @Injectable()

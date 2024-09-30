@@ -1,4 +1,4 @@
-import 'express-session';
+import "express-session";
 
 // Extend the Session type to include the redirect_uri attribute
 declare module 'express-session' {

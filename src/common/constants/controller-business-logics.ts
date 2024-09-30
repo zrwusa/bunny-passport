@@ -77,4 +77,18 @@ export const CONTROLLER_BUSINESS_LOGICS = {
       zh: '成功删除用户',
     },
   },
+  validateToken: {
+    MALFORMED_TOKEN: {
+      en: 'Malformed token',
+      zh: '令牌损坏',
+    },
+    TOKEN_VALIDATION_FAILED: {
+      en: 'Token validation failed',
+      zh: '令牌验证失败',
+    },
+    VALIDATED_SUCCESSFULLY: {
+      en: 'validated successfully',
+      zh: '验证成功',
+    },
+  },
 };

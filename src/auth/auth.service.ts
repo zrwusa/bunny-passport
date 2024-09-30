@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ConfigService } from '@nestjs/config';
 import { createServiceResponseHandlers } from '../common';
+import { JwtPayload } from '../interfaces';
 
 @Injectable()
 export class AuthService {
@@ -194,18 +195,34 @@ export class AuthService {
   }
 
   async validateToken(token: string) {
+    const { buildSuccessResponse, buildFailureResponse } =
+      createServiceResponseHandlers(['validateToken', 'validateJwtPayload']);
     try {
       const JWT_SECRET = this.configService.get('JWT_SECRET');
-      const payload = this.jwtService.verify(token, { secret: JWT_SECRET });
+      const payload: JwtPayload = this.jwtService.verify(token, {
+        secret: JWT_SECRET,
+      });
 
-      if (!payload || !payload.sub) {
-        throw new Error('Invalid token');
+      if (!payload) {
+        return buildFailureResponse('MALFORMED_TOKEN');
       }
 
-      return payload;
+      return buildSuccessResponse('VALIDATED_SUCCESSFULLY', payload);
     } catch (error: any) {
-      throw new Error(`Token validation failed, ${error.messages}`);
+      console.log(error.message);
+      return buildFailureResponse('TOKEN_VALIDATION_FAILED');
     }
+  }
+
+  async validateJwtPayload({ jti }: JwtAccessTokenPayload) {
+    const isBlacklisted = await this.isBlacklisted(jti);
+    const { buildSuccessResponse, buildFailureResponse } =
+      createServiceResponseHandlers('validateJwtPayload');
+    if (isBlacklisted) {
+      return buildFailureResponse('BLACKLISTED');
+    }
+
+    return buildSuccessResponse('VALIDATED_SUCCESSFULLY', isBlacklisted);
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto) {

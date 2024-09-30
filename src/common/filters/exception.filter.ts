@@ -1,17 +1,7 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
-import { TranslationService } from '../../translation.service';
-import {
-  ControllerBusinessLogicCode,
-  ServiceBusinessLogicCode,
-} from '../../types';
-import { isUpperSnakeCase } from '../../utils';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import { TranslationService } from "../../translation.service";
+import { ControllerBusinessLogicCode, ServiceBusinessLogicCode } from "../../types";
+import { isUpperSnakeCase } from "../../utils";
 
 // Capture and translate the HTTP errors of the NestJS specification
 @Catch()
