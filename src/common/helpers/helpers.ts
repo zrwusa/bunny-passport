@@ -2,13 +2,15 @@
 import {
   CONTROLLER_BUSINESS_LOGICS,
   SERVICE_BUSINESS_LOGICS,
-} from './constants';
+} from '../constants';
 import {
-  BlStack,
-  ControllerResponse,
+  ControllerBlStack,
+  ControllerCode,
+  ControllerMethod,
+  ServiceBlStack,
   ServiceCode,
   ServiceMethod,
-} from '../types';
+} from '../../types';
 import { HttpException } from '@nestjs/common/exceptions/http.exception';
 
 function isServiceMethodArray(
@@ -34,7 +36,7 @@ export function createServiceResponseHandlers<
   ) => {
     const res = {
       success,
-      blStack: [] as BlStack,
+      blStack: [] as ServiceBlStack,
       serviceBusinessLogicCode,
       data,
     };
@@ -100,26 +102,86 @@ export function createServiceResponseHandlers<
   return { buildSuccessResponse, buildFailureResponse };
 }
 
+function isControllerMethodArray(
+  methodOrMethods: ControllerMethod | ControllerMethod[],
+): methodOrMethods is ControllerMethod[] {
+  return Array.isArray(methodOrMethods);
+}
+
 export function createControllerResponseHandlers<
-  M extends keyof typeof CONTROLLER_BUSINESS_LOGICS,
->(method: M) {
-  const buildSuccessResponse = function <
-    B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
-    D,
-  >(controllerBusinessLogicCode: B, data?: D): ControllerResponse<M, D> {
-    return {
-      success: true,
-      message:
-        CONTROLLER_BUSINESS_LOGICS[method][controllerBusinessLogicCode]['en'],
-      controllerBusinessLogicCode: controllerBusinessLogicCode,
+  M extends ControllerMethod | ControllerMethod[],
+>(methodOrMethods: M) {
+  const buildResponse = <
+    C extends M extends ControllerMethod[]
+      ? ControllerCode<M[number]>
+      : M extends ControllerMethod
+        ? ControllerCode<M>
+        : never,
+    D = undefined,
+  >(
+    controllerBusinessLogicCode: C,
+    success: boolean,
+    data?: D,
+  ) => {
+    const res = {
+      success,
+      blStack: [] as ControllerBlStack,
+      controllerBusinessLogicCode,
       data,
     };
+
+    if (isControllerMethodArray(methodOrMethods)) {
+      methodOrMethods.forEach((method) => {
+        const methodLogic = CONTROLLER_BUSINESS_LOGICS[method];
+        if (controllerBusinessLogicCode in methodLogic) {
+          res.blStack.push({
+            method,
+            message:
+              methodLogic[
+                controllerBusinessLogicCode as keyof typeof methodLogic
+              ]['en'],
+          });
+        }
+      });
+    } else {
+      const method = methodOrMethods as ControllerMethod;
+      const methodLogic = CONTROLLER_BUSINESS_LOGICS[method];
+      if (controllerBusinessLogicCode in methodLogic) {
+        res.blStack.push({
+          method,
+          message:
+            methodLogic[
+              controllerBusinessLogicCode as keyof typeof methodLogic
+            ]['en'],
+        });
+      }
+    }
+
+    return res;
+  };
+
+  const buildSuccessResponse = <
+    C extends M extends ControllerMethod[]
+      ? ControllerCode<M[number]>
+      : M extends ControllerMethod
+        ? ControllerCode<M>
+        : never,
+    D = undefined,
+  >(
+    controllerBusinessLogicCode: C,
+    data?: D,
+  ) => {
+    return buildResponse(controllerBusinessLogicCode, true, data);
   };
 
   const throwFailure = function <
     H extends new (...args: any[]) => HttpException,
-    B extends keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M],
-  >(HttpExceptionClass: H, controllerBusinessLogicCode: B) {
+    C extends M extends ControllerMethod[]
+      ? ControllerCode<M[number]>
+      : M extends ControllerMethod
+        ? ControllerCode<M>
+        : never,
+  >(HttpExceptionClass: H, controllerBusinessLogicCode: C) {
     throw new HttpExceptionClass(controllerBusinessLogicCode);
   };
 

@@ -20,31 +20,37 @@ export type TranslateRes = {
 };
 
 export type ServiceResponse<
-  M extends
-    | keyof typeof SERVICE_BUSINESS_LOGICS
-    | (keyof typeof SERVICE_BUSINESS_LOGICS)[],
+  M extends ServiceMethod | ServiceMethod[],
   D = undefined,
 > = {
   success: boolean;
   serviceBusinessLogicCode: keyof (typeof SERVICE_BUSINESS_LOGICS)[M];
-  blStack: BlStack;
-  data?: D | null;
+  blStack: ServiceBlStack;
+  data?: D;
 };
 
 export type ControllerResponse<
-  M extends keyof typeof CONTROLLER_BUSINESS_LOGICS,
+  M extends ControllerMethod | ControllerMethod[],
   D = undefined,
 > = {
   success: boolean;
   controllerBusinessLogicCode: keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M];
-  message: string;
-  data?: D | null;
+  blStack: ControllerBlStack;
+  data?: D;
 };
 
 export type ServiceMethod = keyof typeof SERVICE_BUSINESS_LOGICS;
-export type BlStack = { method: ServiceMethod; message: string }[];
+export type ServiceBlStack = { method: ServiceMethod; message: string }[];
 
 // The writing of M extends any here forces TypeScript to apply the conditional type individually to each member of the union type, thereby obtaining the keys of each service and union them
 export type ServiceCode<M extends ServiceMethod> = M extends any
   ? keyof (typeof SERVICE_BUSINESS_LOGICS)[M]
+  : never;
+
+export type ControllerMethod = keyof typeof CONTROLLER_BUSINESS_LOGICS;
+export type ControllerBlStack = { method: ControllerMethod; message: string }[];
+
+// The writing of M extends any here forces TypeScript to apply the conditional type individually to each member of the union type, thereby obtaining the keys of each service and union them
+export type ControllerCode<M extends ControllerMethod> = M extends any
+  ? keyof (typeof CONTROLLER_BUSINESS_LOGICS)[M]
   : never;
