@@ -1,5 +1,5 @@
 // src/auth/dto/login.dto.ts
-import { EmailField, PasswordField } from '../../common/decorators';
+import { EmailField, PasswordField } from '../../../common/decorators';
 
 export class LoginDto {
   @EmailField('user')

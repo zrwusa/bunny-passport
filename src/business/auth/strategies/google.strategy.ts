@@ -7,7 +7,7 @@ import {
   VerifyCallback,
 } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
+import { AuthService } from '../auth.service';
 import { Request } from 'express';
 
 @Injectable()

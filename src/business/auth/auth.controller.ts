@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import {
   ApiBearerAuth,
@@ -25,15 +25,15 @@ import {
 } from '@nestjs/swagger';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { ControllerResponse, ExpressReqWithUser, Tokens } from '../types';
+import { ControllerResponse, ExpressReqWithUser, Tokens } from '../../types';
 import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
-import { createControllerResponseHandlers } from '../common';
+import { createControllerResponseHandlers } from '../../common';
 import { UserMapper } from '../user/mapper/user.mapper';
 import { ResponseUserDto } from '../user/dto/response-user.dto';
-import { GoogleAuthGuard } from '../guards/google-auth.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 @Controller('auth')
 export class AuthController {

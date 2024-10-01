@@ -1,6 +1,6 @@
 // src/auth/dto/change-password.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { EmailField, PasswordField, UsernameField } from '../../common';
+import { EmailField, PasswordField, UsernameField } from '../../../common';
 
 export class ChangePasswordDto {
   @UsernameField('user')

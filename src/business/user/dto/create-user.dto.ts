@@ -1,5 +1,5 @@
 // src/user/dto/create-user.dto.ts
-import { EmailField, PasswordField, UsernameField } from '../../common';
+import { EmailField, PasswordField, UsernameField } from '../../../common';
 
 export class CreateUserDto {
   @UsernameField('user')

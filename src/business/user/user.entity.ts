@@ -1,13 +1,13 @@
 // src/user/user.entity.ts
 import { BeforeInsert, Column, Entity, PrimaryColumn } from 'typeorm';
-import { generateUuNumId } from '../utils';
+import { generateUuNumId } from '../../utils';
 import {
   CreatedAtField,
   EmailField,
   IdField,
   UpdatedAtField,
   UsernameField,
-} from '../common';
+} from '../../common';
 
 @Entity()
 export class User {

@@ -10,9 +10,9 @@ import {
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ResponseUserDto } from './dto/response-user.dto';
 import { UserService } from './user.service';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeleteUserDto } from './dto/delete-user.dto';
-import { createControllerResponseHandlers } from '../common';
+import { createControllerResponseHandlers } from '../../common';
 import { UserMapper } from './mapper/user.mapper';
 
 @ApiTags('users')

@@ -12,12 +12,12 @@ import {
   PassportProvider,
   ProviderProfile,
   Tokens,
-} from '../types';
+} from '../../types';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ConfigService } from '@nestjs/config';
-import { createServiceResponseHandlers } from '../common';
-import { JwtPayload } from '../interfaces';
+import { createServiceResponseHandlers } from '../../common';
+import { JwtPayload } from './interfaces';
 
 @Injectable()
 export class AuthService {

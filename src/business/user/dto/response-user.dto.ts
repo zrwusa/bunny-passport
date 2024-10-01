@@ -5,7 +5,7 @@ import {
   IdField,
   UpdatedAtField,
   UsernameField,
-} from '../../common';
+} from '../../../common';
 
 export class ResponseUserDto {
   @IdField('user')

@@ -5,8 +5,8 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from '../auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
-import { CreateOAuthUserProfile, ServiceResponse } from '../types';
-import { createServiceResponseHandlers } from '../common';
+import { CreateOAuthUserProfile, ServiceResponse } from '../../types';
+import { createServiceResponseHandlers } from '../../common';
 
 @Injectable()
 export class UserService {

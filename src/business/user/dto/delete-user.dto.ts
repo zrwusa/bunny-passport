@@ -1,4 +1,4 @@
-import { IdField } from '../../common/decorators';
+import { IdField } from '../../../common/decorators';
 
 export class DeleteUserDto {
   @IdField('user')

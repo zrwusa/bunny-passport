@@ -1,5 +1,5 @@
 // src/auth/dto/register.dto.ts
-import { EmailField, PasswordField, UsernameField } from '../../common';
+import { EmailField, PasswordField, UsernameField } from '../../../common';
 
 export class RegisterDto {
   @UsernameField('user')
