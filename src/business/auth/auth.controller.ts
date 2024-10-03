@@ -25,14 +25,13 @@ import {
 } from '@nestjs/swagger';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { ControllerResponse, ExpressReqWithUser, Tokens } from '../../types';
+import { ExpressReqWithUser } from '../../types';
 import { Request as ExpressReq } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
-import { createControllerResponseHandlers } from '../../common';
+import { controllerResponseCreator } from '../../common';
 import { UserMapper } from '../user/mapper/user.mapper';
-import { ResponseUserDto } from '../user/dto/response-user.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 @Controller('auth')
@@ -64,43 +63,37 @@ export class AuthController {
       },
     },
   })
-  async register(
-    @Body() registerDto: RegisterDto,
-  ): Promise<ControllerResponse<'register', ResponseUserDto>> {
-    const { buildSuccessResponse, throwFailure } =
-      createControllerResponseHandlers('register');
+  async register(@Body() registerDto: RegisterDto) {
+    const { buildSuccess, throwFailure } =
+      controllerResponseCreator.createBuilders('register');
     const res = await this.authService.userService.createUser(registerDto);
-    const { success, serviceBusinessLogicCode, data } = res;
+    const { success, code, data } = res;
     if (success) {
       const safeUser = UserMapper.toResponseDto(data);
 
-      return buildSuccessResponse('REGISTERED_SUCCESSFULLY', safeUser);
+      return buildSuccess('REGISTERED_SUCCESSFULLY', safeUser);
     }
 
-    switch (serviceBusinessLogicCode) {
+    switch (code) {
       case 'EMAIL_ALREADY_EXISTS':
         throwFailure(ConflictException, 'EMAIL_ALREADY_EXISTS');
     }
   }
 
   @Post('login')
-  async login(
-    @Body() loginDto: LoginDto,
-  ): Promise<
-    ControllerResponse<'login', { user: ResponseUserDto; tokens: Tokens }>
-  > {
+  async login(@Body() loginDto: LoginDto) {
     const res = await this.authService.login(loginDto);
-    const { buildSuccessResponse, throwFailure } =
-      createControllerResponseHandlers('login');
+    const { buildSuccess, throwFailure } =
+      controllerResponseCreator.createBuilders('login');
     const {
       success,
-      serviceBusinessLogicCode,
+      code,
       data: { user: resUser, tokens },
     } = res;
     const user = UserMapper.toResponseDto(resUser);
     if (success)
-      return buildSuccessResponse('LOGGED_IN_SUCCESSFULLY', { user, tokens });
-    switch (serviceBusinessLogicCode) {
+      return buildSuccess('LOGGED_IN_SUCCESSFULLY', { user, tokens });
+    switch (code) {
       case 'USER_OR_PASSWORD_DOES_NOT_MATCH':
         throwFailure(UnauthorizedException, 'USER_OR_PASSWORD_DOES_NOT_MATCH');
         break;
@@ -194,15 +187,14 @@ export class AuthController {
   async refreshToken(
     @Request() req: ExpressReq,
     @Body() refreshTokenDto: RefreshTokenDto,
-  ): Promise<ControllerResponse<'refresh', { accessToken: string }>> {
+  ) {
     const { refreshToken } = refreshTokenDto;
     const res = await this.authService.refresh(refreshToken);
     const { success, data } = res;
-    const { buildSuccessResponse, throwFailure } =
-      createControllerResponseHandlers('refresh');
+    const { buildSuccess, throwFailure } =
+      controllerResponseCreator.createBuilders('refresh');
 
-    if (success)
-      return buildSuccessResponse('REFRESH_TOKEN_SUCCESSFULLY', data);
+    if (success) return buildSuccess('REFRESH_TOKEN_SUCCESSFULLY', data);
 
     throwFailure(UnauthorizedException, 'REFRESH_TOKEN_FAILED');
   }
@@ -213,13 +205,13 @@ export class AuthController {
   async logout(
     @Request() req: ExpressReqWithUser,
     @Body() logoutDto: LogoutDto,
-  ): Promise<ControllerResponse<'logout'>> {
+  ) {
     // TODO there is a bug: when we use a refresh token that no longer exists in Redis, it will still be added to the blacklist.
     const authorizationHeader = req.headers.authorization;
     const refreshToken = logoutDto.refreshToken;
 
-    const { buildSuccessResponse, throwFailure } =
-      createControllerResponseHandlers('logout');
+    const { buildSuccess, throwFailure } =
+      controllerResponseCreator.createBuilders('logout');
 
     // Check if Authorization header exists
     if (!authorizationHeader) {
@@ -235,7 +227,7 @@ export class AuthController {
 
     await this.authService.logout(accessToken, refreshToken);
 
-    return buildSuccessResponse('LOGGED_OUT_SUCCESSFULLY');
+    return buildSuccess('LOGGED_OUT_SUCCESSFULLY');
   }
 
   @Patch('change-password')
@@ -258,13 +250,12 @@ export class AuthController {
   ) {
     const userId = req.user.id; // Jwt Auth Guard will add user information to the request object
     const res = await this.authService.changePassword(userId, userData);
-    const { success, serviceBusinessLogicCode, data } = res;
-    const { buildSuccessResponse, throwFailure } =
-      createControllerResponseHandlers('changePassword');
+    const { success, code, data } = res;
+    const { buildSuccess, throwFailure } =
+      controllerResponseCreator.createBuilders('changePassword');
 
-    if (success)
-      return buildSuccessResponse('PASSWORD_CHANGED_SUCCESSFULLY', data);
-    switch (serviceBusinessLogicCode) {
+    if (success) return buildSuccess('PASSWORD_CHANGED_SUCCESSFULLY', data);
+    switch (code) {
       case 'USER_NOT_FOUND':
         throwFailure(NotFoundException, 'USER_NOT_FOUND');
         break;
@@ -279,8 +270,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async validateToken(@Req() req: ExpressReqWithUser) {
     const { authorization } = req.headers;
-    const { buildSuccessResponse, throwFailure } =
-      createControllerResponseHandlers('validateToken');
+    const { buildSuccess, throwFailure } =
+      controllerResponseCreator.createBuilders('validateToken');
     if (!authorization)
       return throwFailure(UnauthorizedException, 'TOKEN_VALIDATION_FAILED');
     const bearerSplit = authorization.split('Bearer');
@@ -289,10 +280,10 @@ export class AuthController {
       return throwFailure(UnauthorizedException, 'TOKEN_VALIDATION_FAILED');
     const accessToken = bearerSplit[1].trim();
     const res = await this.authService.validateToken(accessToken);
-    const { success, serviceBusinessLogicCode } = res;
+    const { success, code } = res;
 
-    if (success) return buildSuccessResponse('VALIDATED_SUCCESSFULLY');
-    switch (serviceBusinessLogicCode) {
+    if (success) return buildSuccess('VALIDATED_SUCCESSFULLY');
+    switch (code) {
       case 'MALFORMED_TOKEN':
         throwFailure(NotFoundException, 'MALFORMED_TOKEN');
         break;

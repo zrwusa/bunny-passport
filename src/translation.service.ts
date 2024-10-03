@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  ControllerBusinessLogicCode,
-  ServiceBusinessLogicCode,
-  TranslateBusinessLogicFrom,
-  TranslateRes,
-} from './types';
+import { TranslateBusinessLogicFrom, TranslateRes } from './types';
 
 import {
   CONTROLLER_BUSINESS_LOGICS,
@@ -14,7 +9,7 @@ import {
 @Injectable()
 export class TranslationService {
   translateBusinessLogicCode(
-    code: ControllerBusinessLogicCode | ServiceBusinessLogicCode,
+    code: string,
     lang: string = 'en',
     translateBusinessLogicFrom: TranslateBusinessLogicFrom = 'service',
   ): TranslateRes {
@@ -46,23 +41,12 @@ export class TranslationService {
     return { success: false, translated: code };
   }
 
-  async translate(
-    key: ControllerBusinessLogicCode | ServiceBusinessLogicCode,
-    lang: string,
-  ): Promise<TranslateRes> {
-    const res = this.translateBusinessLogicCode(
-      key as ServiceBusinessLogicCode,
-      lang,
-      'controller',
-    );
+  async translate(key: string, lang: string): Promise<TranslateRes> {
+    const res = this.translateBusinessLogicCode(key, lang, 'controller');
     const { success } = res;
     if (success) return res;
     else {
-      const res = this.translateBusinessLogicCode(
-        key as ServiceBusinessLogicCode,
-        lang,
-        'service',
-      );
+      const res = this.translateBusinessLogicCode(key, lang, 'service');
       const { success } = res;
       if (success) return res;
       else return { success: false, translated: key };

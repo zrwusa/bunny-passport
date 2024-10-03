@@ -1,14 +1,14 @@
 // src/app.module.ts
-import { Module } from "@nestjs/common";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
-import { UserController } from "./business/user/user.controller";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { User } from "./business/user/user.entity";
-import { UserService } from "./business/user/user.service";
-import { ConfigModule, ConfigService } from "@nestjs/config";
-import { AuthModule } from "./business/auth/auth.module";
-import { TranslationService } from "./translation.service";
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UserController } from './business/user/user.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './business/user/user.entity';
+import { UserService } from './business/user/user.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthModule } from './business/auth/auth.module';
+import { TranslationService } from './translation.service';
 // import { APP_INTERCEPTOR } from '@nestjs/core';
 // import { I18nInterceptor } from './common/interceptors/i18n.interceptor';
 

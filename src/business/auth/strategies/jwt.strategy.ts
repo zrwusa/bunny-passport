@@ -22,10 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   // If jwt-guard finds that the request carries an access token, it will trigger this. If there is no jwt-guard, it will directly return a verification error message.
   async validate(payload: JwtAccessTokenPayload): Promise<JwtReqUser> {
-    const { success, serviceBusinessLogicCode } =
+    const { success, code } =
       await this.authService.validateJwtPayload(payload);
     if (!success) {
-      throw new UnauthorizedException(serviceBusinessLogicCode);
+      throw new UnauthorizedException(code);
     }
     const { id, email } = payload;
     // The data returned from here will be bound to req.user

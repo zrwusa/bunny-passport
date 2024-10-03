@@ -1,12 +1,12 @@
-// src/user/user.service.ts
+// src/user/user.service-response.ts
 import { Injectable } from '@nestjs/common';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterDto } from '../auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
-import { CreateOAuthUserProfile, ServiceResponse } from '../../types';
-import { createServiceResponseHandlers } from '../../common';
+import { CreateOAuthUserProfile } from '../../types';
+import { serviceResponseCreator } from '../../common';
 
 @Injectable()
 export class UserService {
@@ -16,78 +16,68 @@ export class UserService {
   ) {}
 
   // Get all users
-  async findAllUsers(): Promise<ServiceResponse<'findAllUsers', User[]>> {
+  async findAllUsers() {
     const allUsers = await this.userRepository.find();
-    const { buildSuccessResponse } =
-      createServiceResponseHandlers('findAllUsers');
-    return buildSuccessResponse('FIND_USERS_SUCCESSFULLY', allUsers);
+    const { buildSuccess } =
+      serviceResponseCreator.createBuilders('findAllUsers');
+    return buildSuccess('FIND_USERS_SUCCESSFULLY', allUsers);
   }
 
-  async createUser(
-    registerData: RegisterDto,
-  ): Promise<ServiceResponse<'createUser', User>> {
+  async createUser(registerData: RegisterDto) {
     const { email, password } = registerData;
     const existingUser = await this.userRepository.findOneBy({ email });
 
-    const { buildFailureResponse, buildSuccessResponse } =
-      createServiceResponseHandlers('createUser');
+    const { buildFailure, buildSuccess } =
+      serviceResponseCreator.createBuilders('createUser');
 
-    if (existingUser) return buildFailureResponse('EMAIL_ALREADY_EXISTS');
+    if (existingUser) return buildFailure('EMAIL_ALREADY_EXISTS');
 
     const user = new User();
     Object.assign(user, registerData);
     user.password = await bcrypt.hash(password, 10);
 
     const savedUser = await this.userRepository.save(user);
-    return buildSuccessResponse('USER_CREATED_SUCCESSFULLY', savedUser);
+    return buildSuccess('USER_CREATED_SUCCESSFULLY', savedUser);
   }
 
-  async deleteUser(id: string): Promise<ServiceResponse<'deleteUser', User>> {
-    const { buildFailureResponse, buildSuccessResponse } =
-      createServiceResponseHandlers('deleteUser');
+  async deleteUser(id: string) {
+    const { buildFailure, buildSuccess } =
+      serviceResponseCreator.createBuilders('deleteUser');
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
-      return buildFailureResponse('USER_NOT_FOUND');
+      return buildFailure('USER_NOT_FOUND');
     }
 
     const deletedUser = await this.userRepository.remove(user);
-    return buildSuccessResponse('USER_DELETED_SUCCESSFULLY', deletedUser);
+    return buildSuccess('USER_DELETED_SUCCESSFULLY', deletedUser);
   }
 
   // Find users based on username (for Local login)
-  async findOneByUsername(
-    email: string,
-  ): Promise<ServiceResponse<'findOneByUsername', User>> {
-    const { buildSuccessResponse } =
-      createServiceResponseHandlers('findOneByUsername');
+  async findOneByUsername(email: string) {
+    const { buildSuccess } =
+      serviceResponseCreator.createBuilders('findOneByUsername');
     const user = await this.userRepository.findOneBy({ email });
-    return buildSuccessResponse('FIND_ONE_BY_USERNAME_SUCCESSFULLY', user);
+    return buildSuccess('FIND_ONE_BY_USERNAME_SUCCESSFULLY', user);
   }
 
   // Find users based on OAuth ID and provider (for Google, Github OAuth2 login)
-  async findOneByOAuthProvider(
-    oauthId: string,
-    provider: string,
-  ): Promise<ServiceResponse<'findOneByOAuthProvider', User>> {
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('findOneByOAuthProvider');
+  async findOneByOAuthProvider(oauthId: string, provider: string) {
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('findOneByOAuthProvider');
 
     const user = await this.userRepository.findOne({
       where: { oauthId, provider },
     });
 
     if (!user) {
-      return buildFailureResponse('FIND_ONE_USER_FAILED');
+      return buildFailure('FIND_ONE_USER_FAILED');
     }
 
-    return buildSuccessResponse('FIND_ONE_USER_SUCCESSFULLY', user);
+    return buildSuccess('FIND_ONE_USER_SUCCESSFULLY', user);
   }
 
   // Create O Auth User (for creating new users when first logging in via Google or Github)
-  async createOAuthUser(
-    profile: CreateOAuthUserProfile,
-    provider: string,
-  ): Promise<ServiceResponse<'createOAuthUser', User>> {
+  async createOAuthUser(profile: CreateOAuthUserProfile, provider: string) {
     const { username, email, oauthId } = profile;
     const newUser = this.userRepository.create({
       username,
@@ -97,22 +87,19 @@ export class UserService {
       createdAt: new Date(),
     });
     const user = await this.userRepository.save(newUser);
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('createOAuthUser');
-    if (!user) return buildFailureResponse('CREATE_OAUTH_USER_FAILED');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('createOAuthUser');
+    if (!user) return buildFailure('CREATE_OAUTH_USER_FAILED');
 
-    return buildSuccessResponse('CREATE_OAUTH_USER_SUCCESSFULLY', user);
+    return buildSuccess('CREATE_OAUTH_USER_SUCCESSFULLY', user);
   }
 
-  async comparePasswords(
-    inputPassword: string,
-    storedPassword: string,
-  ): Promise<ServiceResponse<'comparePasswords'>> {
+  async comparePasswords(inputPassword: string, storedPassword: string) {
     const result = bcrypt.compare(inputPassword, storedPassword);
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('comparePasswords');
-    if (!result) return buildFailureResponse('PASSWORDS_DIFFERENT');
-    return buildSuccessResponse('PASSWORDS_EQUAL');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('comparePasswords');
+    if (!result) return buildFailure('PASSWORDS_DIFFERENT');
+    return buildSuccess('PASSWORDS_EQUAL');
   }
 
   async sendEmailVerificationLink(newEmail: string): Promise<void> {

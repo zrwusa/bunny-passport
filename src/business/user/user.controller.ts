@@ -12,8 +12,8 @@ import { ResponseUserDto } from './dto/response-user.dto';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeleteUserDto } from './dto/delete-user.dto';
-import { createControllerResponseHandlers } from '../../common';
 import { UserMapper } from './mapper/user.mapper';
+import { controllerResponseCreator } from '../../common';
 
 @ApiTags('users')
 @Controller('users')
@@ -31,10 +31,10 @@ export class UserController {
   async findAll() {
     const res = await this.userService.findAllUsers();
     const { success, data } = res;
-    const { buildSuccessResponse } =
-      createControllerResponseHandlers('findAll');
+    const { buildSuccess } =
+      controllerResponseCreator.createBuilders('findAll');
     const users = data.map((user) => UserMapper.toResponseDto(user));
-    if (success) return buildSuccessResponse('FIND_USERS_SUCCESSFULLY', users);
+    if (success) return buildSuccess('FIND_USERS_SUCCESSFULLY', users);
   }
 
   @ApiResponse({
@@ -50,12 +50,12 @@ export class UserController {
   @Delete(':id')
   async delete(@Param() { id }: DeleteUserDto) {
     const res = await this.userService.deleteUser(id);
-    const { success, serviceBusinessLogicCode, data } = res;
-    const { buildSuccessResponse } =
-      createControllerResponseHandlers('deleteUser');
-    if (success) return buildSuccessResponse('USER_DELETED_SUCCESSFULLY', data);
+    const { success, code, data } = res;
+    const { buildSuccess } =
+      controllerResponseCreator.createBuilders('deleteUser');
+    if (success) return buildSuccess('USER_DELETED_SUCCESSFULLY', data);
 
-    switch (serviceBusinessLogicCode) {
+    switch (code) {
       case 'USER_NOT_FOUND':
         throw new NotFoundException('USER_NOT_FOUND');
     }

@@ -1,7 +1,14 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
-import { TranslationService } from "../../translation.service";
-import { ControllerBusinessLogicCode, ServiceBusinessLogicCode } from "../../types";
-import { isUpperSnakeCase } from "../../utils";
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { TranslationService } from '../../translation.service';
+
+import { isUpperSnakeCase } from '../../utils';
 
 // Capture and translate the HTTP errors of the NestJS specification
 @Catch()
@@ -19,12 +26,8 @@ export class ExceptionI18nFilter implements ExceptionFilter {
       const exceptionResponse: any = exception.getResponse();
       const lang = request.headers['accept-language'] || 'en';
 
-      let message = exceptionResponse.message;
+      const message = exceptionResponse.message;
       if (typeof message === 'string' && isUpperSnakeCase(message)) {
-        message = message as
-          | ControllerBusinessLogicCode
-          | ServiceBusinessLogicCode;
-
         const translateRes = await this.translationService.translate(
           message,
           lang,

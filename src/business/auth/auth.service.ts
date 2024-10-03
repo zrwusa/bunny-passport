@@ -1,4 +1,4 @@
-// src/auth/auth.helpers.ts
+// src/auth/auth.controller-response.ts
 import { Inject, Injectable } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -16,7 +16,7 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ConfigService } from '@nestjs/config';
-import { createServiceResponseHandlers } from '../../common';
+import { serviceResponseCreator } from '../../common';
 import { JwtPayload } from './interfaces';
 
 @Injectable()
@@ -85,45 +85,45 @@ export class AuthService {
 
   // Local authenticated user
   async validateUser(email: string, password: string) {
-    const { buildFailureResponse, buildSuccessResponse } =
-      createServiceResponseHandlers('validateUser');
+    const { buildFailure, buildSuccess } =
+      serviceResponseCreator.createBuilders('validateUser');
     const res = await this.userService.findOneByUsername(email);
     const { data: user } = res;
 
-    if (!user) return buildFailureResponse('USER_OR_PASSWORD_DOES_NOT_MATCH');
+    if (!user) return buildFailure('USER_OR_PASSWORD_DOES_NOT_MATCH');
     if (!bcrypt.compareSync(password, user.password)) {
-      return buildFailureResponse('USER_OR_PASSWORD_DOES_NOT_MATCH');
+      return buildFailure('USER_OR_PASSWORD_DOES_NOT_MATCH');
     }
-    return buildSuccessResponse('VALIDATE_USER_SUCCESSFULLY', user);
+    return buildSuccess('VALIDATE_USER_SUCCESSFULLY', user);
   }
 
   // Local login
   async login({ email, password }: LoginDto) {
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('login');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('login');
     const res = await this.validateUser(email, password);
-    const { success, data: validatedUser, serviceBusinessLogicCode } = res;
+    const { success, data: validatedUser, code } = res;
     if (success) {
       const tokens = await this.generateTokens(validatedUser);
 
-      return buildSuccessResponse('LOGIN_SUCCESSFULLY', {
+      return buildSuccess('LOGIN_SUCCESSFULLY', {
         user: validatedUser,
         tokens,
       });
     }
 
-    switch (serviceBusinessLogicCode) {
+    switch (code) {
       case 'USER_OR_PASSWORD_DOES_NOT_MATCH':
-        return buildFailureResponse('USER_OR_PASSWORD_DOES_NOT_MATCH');
+        return buildFailure('USER_OR_PASSWORD_DOES_NOT_MATCH');
     }
 
-    return buildFailureResponse('LOGIN_FAILED');
+    return buildFailure('LOGIN_FAILED');
   }
 
   // Refresh Access Token
   async refresh(refreshToken: string) {
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('refresh');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('refresh');
     const { id, email, rti } =
       this.jwtService.decode<JwtRefreshTokenPayload>(refreshToken);
     const storedToken = await this.redisClient.get(
@@ -131,7 +131,7 @@ export class AuthService {
     );
 
     if (!storedToken || storedToken !== refreshToken) {
-      return buildFailureResponse('INVALID_REFRESH_TOKEN');
+      return buildFailure('INVALID_REFRESH_TOKEN');
     }
 
     // Generate new accessToken
@@ -140,7 +140,7 @@ export class AuthService {
       { expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN') },
     );
 
-    return buildSuccessResponse('REFRESH_TOKEN_SUCCESSFULLY', {
+    return buildSuccess('REFRESH_TOKEN_SUCCESSFULLY', {
       accessToken: newAccessToken,
     });
   }
@@ -174,8 +174,8 @@ export class AuthService {
 
   // Add accessToken to blacklist
   async blacklistToken(jti: string, expiresIn: number) {
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('redisSet');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('redisSet');
     // TODO blacklist token key design
     const redisRes = await this.redisClient.set(
       `blacklist_token:${jti}`,
@@ -184,8 +184,8 @@ export class AuthService {
       expiresIn,
     );
 
-    if (redisRes !== 'OK') return buildSuccessResponse('NOT_OK');
-    return buildFailureResponse('OK');
+    if (redisRes !== 'OK') return buildSuccess('NOT_OK');
+    return buildFailure('OK');
   }
 
   // Check if the token is in the blacklist
@@ -195,8 +195,11 @@ export class AuthService {
   }
 
   async validateToken(token: string) {
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers(['validateToken', 'validateJwtPayload']);
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders([
+        'validateToken',
+        'validateJwtPayload',
+      ]);
     try {
       const JWT_SECRET = this.configService.get('JWT_SECRET');
       const payload: JwtPayload = this.jwtService.verify(token, {
@@ -204,33 +207,33 @@ export class AuthService {
       });
 
       if (!payload) {
-        return buildFailureResponse('MALFORMED_TOKEN');
+        return buildFailure('MALFORMED_TOKEN');
       }
 
-      return buildSuccessResponse('VALIDATED_SUCCESSFULLY', payload);
+      return buildSuccess('VALIDATED_SUCCESSFULLY', payload);
     } catch (error: any) {
       console.log(error.message);
-      return buildFailureResponse('TOKEN_VALIDATION_FAILED');
+      return buildFailure('TOKEN_VALIDATION_FAILED');
     }
   }
 
   async validateJwtPayload({ jti }: JwtAccessTokenPayload) {
     const isBlacklisted = await this.isBlacklisted(jti);
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('validateJwtPayload');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('validateJwtPayload');
     if (isBlacklisted) {
-      return buildFailureResponse('BLACKLISTED');
+      return buildFailure('BLACKLISTED');
     }
 
-    return buildSuccessResponse('VALIDATED_SUCCESSFULLY', isBlacklisted);
+    return buildSuccess('VALIDATED_SUCCESSFULLY', isBlacklisted);
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto) {
     const user = await this.userService.userRepository.findOneBy({ id });
-    const { buildSuccessResponse, buildFailureResponse } =
-      createServiceResponseHandlers('changePassword');
+    const { buildSuccess, buildFailure } =
+      serviceResponseCreator.createBuilders('changePassword');
     if (!user) {
-      return buildFailureResponse('USER_NOT_FOUND');
+      return buildFailure('USER_NOT_FOUND');
     }
 
     const { email, password, oldPassword } = changePasswordDto;
@@ -239,13 +242,13 @@ export class AuthService {
       user.password !== null &&
       !(await this.userService.comparePasswords(oldPassword, user.password))
     ) {
-      return buildFailureResponse('ORIGINAL_PASSWORD_IS_INCORRECT');
+      return buildFailure('ORIGINAL_PASSWORD_IS_INCORRECT');
     }
 
     user.password = await bcrypt.hash(password, 10);
 
     await this.userService.sendEmailVerificationLink(email);
     const savedUser = await this.userService.userRepository.save(user);
-    return buildSuccessResponse('PASSWORD_CHANGED_SUCCESSFULLY', savedUser);
+    return buildSuccess('PASSWORD_CHANGED_SUCCESSFULLY', savedUser);
   }
 }
